@@ -21,7 +21,7 @@ def isExecutable(command):
 def type(command):
     executable, dir = isExecutable(command)
     if command in builtin:
-        print(f"{typed_command} is a shell builtin")
+        print(f"{command} is a shell builtin")
     elif executable:
         print(f"{command} is {dir}")
     else:

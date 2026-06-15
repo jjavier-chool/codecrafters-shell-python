@@ -3,7 +3,7 @@ import sys
 def type(command):
     match command:
         case "exit" | "echo" | "type":
-            print(f"{command} is a shell builtin.")
+            print(f"{command} is a shell builtin")
         case _:
             print(f"{command}: not found")
 

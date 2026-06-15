@@ -25,7 +25,7 @@ def type(command):
     elif executable:
         print(f"{command} is {dir}")
     else:
-        print(f"{typed_command}: not found")
+        print(f"{command}: not found")
 
 def main():
     while True:

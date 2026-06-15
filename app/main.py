@@ -31,8 +31,8 @@ def main():
             case "exit":
                 exit(0)
             case "cd":
-                if os.path.isdir(command[5:]):
-                    os.chdir(command[5:])
+                if os.path.isdir(command[3:]):
+                    os.chdir(command[3:])
             case "echo":
                 print(command[5:])
             case "type":

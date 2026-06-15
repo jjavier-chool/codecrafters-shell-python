@@ -4,14 +4,13 @@ import sys
 def main():
     while True:
         sys.stdout.write("$ ")
-        command = input()
-        match command:
-            case "exit":
-                break
-            case "echo":
-                print(f"{command}")
-            case _:
-                print(f"{command}: command not found")
+        usr_input = input()
+        if(usr_input == "exit"):
+            break
+        else if(usr_input.startswith("echo ")):
+            print(command[5:])
+        else:
+            print(f"{command}: command not found")
     pass
 
 

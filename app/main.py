@@ -1,15 +1,8 @@
 import os
 import sys
+import subprocess
 
 builtin = ["type", "echo", "exit"]
-
-def getPath(command):
-    path = os.environ["PATH"]
-    for dir in path.split(":"):
-        if os.access(dir + "/" + command, os.X_OK):
-            return dir + "/" + command
-    return ""
-
 
 def isExecutable(command):
     path = os.environ["PATH"]
@@ -33,6 +26,7 @@ def main():
         command = input()
         command_split = command.split()
         process = command_split[0]
+        executable, dir = isExecutable(process)
         match process:
             case "exit":
                 exit(0)
@@ -41,7 +35,10 @@ def main():
             case "type":
                 type(command[5:])
             case _:
-                print(f"{command}: command not found")
+                if executable:
+                    subprocess.run(command_split)
+                else:
+                    print(f"{command}: command not found")
 
 
 if __name__ == "__main__":

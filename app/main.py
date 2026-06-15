@@ -4,10 +4,10 @@ import sys
 def main():
     while True:
         sys.stdout.write("$ ")
-        usr_input = input()
-        if usr_input == "exit":
+        command = input()
+        if command == "exit":
             break
-        elif usr_input.startswith("echo "):
+        elif command.startswith("echo "):
             print(command[5:])
         else:
             print(f"{command}: command not found")

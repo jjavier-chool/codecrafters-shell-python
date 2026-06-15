@@ -6,7 +6,7 @@ def main():
         sys.stdout.write("$ ")
         command = input()
         match command:
-            case exit:
+            case "exit":
                 break
             case _:
                 print(f"{command}: command not found")

@@ -1,24 +1,46 @@
 import sys
 
+builtin = ["type", "echo", "exit"]
+
+def getPath(command):
+    path = os.environ["PATH"]
+    for dir in path.split(":"):
+        if os.access(dir + "/" + command, os.X_OK):
+            return dir + "/" + command
+    return ""
+
+
+def isExecutable(command):
+    path = os.environ["PATH"]
+    for dir in path.split(os.pathsep):
+        if os.access(dir + "/" + command, os.X_OK):
+            return True, dir + "/" + command
+    return False, ""
+
 def type(command):
-    match command:
-        case "exit" | "echo" | "type":
-            print(f"{command} is a shell builtin")
-        case _:
-            print(f"{command}: not found")
+    executable, dir = isExecutable(command)
+    if command in builtin:
+        print(f"{typed_command} is a shell builtin")
+    elif executable:
+        print(f"{command} is {dir}")
+    else:
+        print(f"{typed_command}: not found")
 
 def main():
     while True:
         sys.stdout.write("$ ")
         command = input()
-        if command == "exit":
-            break
-        elif command.startswith("echo "):
-            print(command[5:])
-        elif command.startswith("type "):
-            type(command[5:])
-        else:
-            print(f"{command}: command not found")
+        command_split = command.split()
+        process = command_split[0]
+        match process:
+            case "exit":
+                exit(0)
+            case "echo":
+                print(command[5:])
+            case "type":
+                type(command[5:])
+            case _:
+                print(f"{command}: command not found")
 
 
 if __name__ == "__main__":

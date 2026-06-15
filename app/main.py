@@ -33,7 +33,7 @@ def main():
             case "cd":
                 if command[3:] == "~":
                     os.chdir(os.path.expanduser("~"))
-                if os.path.isdir(command[3:]):
+                elif os.path.isdir(command[3:]):
                     os.chdir(command[3:])
                 else:
                     print(f"cd: {command[3:]}: No such file or directory") # Naive error, no msg for not a directory specifically

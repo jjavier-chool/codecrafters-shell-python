@@ -1,6 +1,6 @@
-import os
-import sys
 import subprocess
+import sys
+import os
 
 builtin = ["pwd", "type", "echo", "exit"]
 
@@ -30,6 +30,9 @@ def main():
         match process:
             case "exit":
                 exit(0)
+            case "cd":
+                if os.path.isdir(command[5:]):
+                    os.chdir(command[5:])
             case "echo":
                 print(command[5:])
             case "type":

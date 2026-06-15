@@ -8,6 +8,8 @@ def main():
         match command:
             case "exit":
                 break
+            case "echo";
+                print(f"{command}")
             case _:
                 print(f"{command}: command not found")
     pass

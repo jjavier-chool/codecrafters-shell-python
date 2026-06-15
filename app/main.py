@@ -31,6 +31,8 @@ def main():
             case "exit":
                 exit(0)
             case "cd":
+                if command[3:] == "~":
+                    os.chdir(os.path.expanduser("~"))
                 if os.path.isdir(command[3:]):
                     os.chdir(command[3:])
                 else:

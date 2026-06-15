@@ -7,7 +7,7 @@ def main():
         command = input()
         match command:
             case exit:
-                break;
+                break
             case _:
                 print(f"{command}: command not found")
     pass

@@ -2,7 +2,7 @@ import os
 import sys
 import subprocess
 
-builtin = ["type", "echo", "exit"]
+builtin = ["pwd", "type", "echo", "exit"]
 
 def isExecutable(command):
     path = os.environ["PATH"]
@@ -34,6 +34,8 @@ def main():
                 print(command[5:])
             case "type":
                 type(command[5:])
+            case "pwd":
+                print(os.getcwd())
             case _:
                 if executable:
                     subprocess.run(command_split)

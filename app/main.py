@@ -5,9 +5,9 @@ def main():
     while True:
         sys.stdout.write("$ ")
         usr_input = input()
-        if(usr_input == "exit"):
+        if usr_input == "exit":
             break
-        else if(usr_input.startswith("echo ")):
+        elif usr_input.startswith("echo "):
             print(command[5:])
         else:
             print(f"{command}: command not found")

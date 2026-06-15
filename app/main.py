@@ -3,6 +3,10 @@ import sys
 
 def main():
     sys.stdout.write("$ ")
+    command = input()
+    match command:
+        case _:
+            print(f"{command}: command not found")
     pass
 
 

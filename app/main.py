@@ -1,5 +1,5 @@
 import subprocess
-import shlex
+import shlex # This library is basically like cheating for all of the quoting challenges. Want to try writing it myself later
 import sys
 import os
 
@@ -15,20 +15,22 @@ def isExecutable(command):
 def type(command):
     executable, dir = isExecutable(command)
     if command in builtin:
-        print(f"{command} is a shell builtin")
+        return f"{command} is a shell builtin"
     elif executable:
-        print(f"{command} is {dir}")
+        return f"{command} is {dir}"
     else:
-        print(f"{command}: not found")
+        return f"{command}: not found"
 
 def cat(filenames):
+    output = ""
     for filename in filenames:
         try:
             with open(filename, "r") as file:
                 content = file.read()
-                print(content, end="")
+                output += content
         except FileNotFoundError:
-            print("cat: {filename}: No such file or directory")
+            return f"cat: {filename}: No such file or directory"
+    return output
 
 
 def main():
@@ -37,6 +39,14 @@ def main():
         command = input()
         command_split = shlex.split(command)
         process = command_split[0]
+
+        redirect = false
+        output = ""
+        outputFile = ""
+        if command_split[-2] == ">" || command_split[-2] == "1>":
+            redirect = true
+            outputFile = command_split[-1]
+
         match process:
             case "exit":
                 exit(0)
@@ -49,19 +59,25 @@ def main():
                 else:
                     print(f"cd: {abspath}: No such file or directory") # Naive error, no msg for not a directory specifically
             case "echo":
-                print(" ".join(command_split[1:]))
+                ouput = " ".join(command_split[1:]))
             case "type":
-                type(command[5:])
+                output = type(command[5:])
             case "pwd":
-                print(os.getcwd())
+                output = os.getcwd())
             case "cat":
-                cat(command_split[1:])
+                output = cat(command_split[1:])
+            case "ls":
+                output = os.listdir('.')
             case _:
                 executable, _ = isExecutable(process)
                 if executable:
                     subprocess.run(command_split)
+                    # not sure how to redirect output here yet
                 else:
                     print(f"{command}: command not found")
+        if redirect:
+            with open(outputFile, "w") as file:
+                file.write(output)
 
 
 if __name__ == "__main__":

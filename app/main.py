@@ -3,7 +3,7 @@ import shlex
 import sys
 import os
 
-builtin = ["pwd", "type", "echo", "exit", "cat"]
+builtin = ["pwd", "type", "echo", "exit"]
 
 def isExecutable(command):
     path = os.environ["PATH"]

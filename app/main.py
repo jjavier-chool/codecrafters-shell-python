@@ -25,8 +25,8 @@ def cat(filenames):
     for file in filenames:
         try:
             with open(absolute_path, "r") as file:
-            content = file.read()
-            print(content)
+                content = file.read()
+                print(content)
         except FileNotFoundError:
             print("cat: {filename}: No such file or directory")
 

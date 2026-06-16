@@ -5,13 +5,6 @@ import os
 
 builtin = ["pwd", "type", "echo", "exit", "cat"]
 
-def findFile(filename):
-    cwd = os.getcwd()
-    for root, dirs, files in os.walk(target_dir):
-        if filename in files:
-            return os.path.join(root, filename)
-    return None
-
 def isExecutable(command):
     path = os.environ["PATH"]
     for dir in path.split(os.pathsep):
@@ -28,12 +21,14 @@ def type(command):
     else:
         print(f"{command}: not found")
 
-def cat(filename):
-    if findFile(filename) is not None:
-        with open(filename, "r") as file:
-            print(file.read())
-    else:
-        print("cat: {filename}: No such file or directory")
+def cat(filenames):
+    for file in filenames:
+        try:
+            with open(absolute_path, "r") as file:
+            content = file.read()
+            print(content)
+        except FileNotFoundError:
+            print("cat: {filename}: No such file or directory")
 
 
 def main():
@@ -60,7 +55,7 @@ def main():
             case "pwd":
                 print(os.getcwd())
             case "cat":
-                cat(command[4:])
+                cat(command_split[1:])
             case _:
                 executable, _ = isExecutable(process)
                 if executable:

@@ -1,8 +1,16 @@
 import subprocess
+import shlex
 import sys
 import os
 
-builtin = ["pwd", "type", "echo", "exit"]
+builtin = ["pwd", "type", "echo", "exit", "cat"]
+
+def findFile(filename):
+    cwd = os.getcwd()
+    for root, dirs, files in os.walk(target_dir):
+        if filename in files:
+            return os.path.join(root, filename)
+    return None
 
 def isExecutable(command):
     path = os.environ["PATH"]
@@ -20,30 +28,41 @@ def type(command):
     else:
         print(f"{command}: not found")
 
+def cat(filename):
+    if findFile(filename) is not None:
+        with open(filename, "r") as file:
+            print(file.read())
+    else:
+        print("cat: {filename}: No such file or directory")
+
+
 def main():
     while True:
         sys.stdout.write("$ ")
         command = input()
-        command_split = command.split()
+        command_split = shlex.split(command)
         process = command_split[0]
-        executable, dir = isExecutable(process)
         match process:
             case "exit":
                 exit(0)
             case "cd":
-                if command[3:] == "~":
+                abspath = command[3:]
+                if abspath == "~":
                     os.chdir(os.path.expanduser("~"))
-                elif os.path.isdir(command[3:]):
-                    os.chdir(command[3:])
+                elif os.path.isdir(abspath):
+                    os.chdir(abspath)
                 else:
-                    print(f"cd: {command[3:]}: No such file or directory") # Naive error, no msg for not a directory specifically
+                    print(f"cd: {abspath}: No such file or directory") # Naive error, no msg for not a directory specifically
             case "echo":
-                print(command[5:])
+                print(" ".join(command_split[1:]))
             case "type":
                 type(command[5:])
             case "pwd":
                 print(os.getcwd())
+            case "cat":
+		cat(command[4:])
             case _:
+                executable, _ = isExecutable(process)
                 if executable:
                     subprocess.run(command_split)
                 else:

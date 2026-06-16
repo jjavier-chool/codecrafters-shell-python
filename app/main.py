@@ -30,6 +30,8 @@ def main():
 
         redirect = False
         redirectErr = False
+        append = False
+        appendErr = False
         error = False
         output = ""
         outputFile = ""
@@ -40,6 +42,14 @@ def main():
                 command_split = command_split[:-2]
             elif command_split[-2] == "2>":
                 redirectErr = True
+                outputFile = command_split[-1]
+                command_split = command_split[:-2]
+            elif command_split[-2] in (">>", "1>>"):
+                append = True
+                outputFile = command_split[-1]
+                command_split = command_split[:-2]
+            elif command_split[-2] == "2>>":
+                appendErr = True
                 outputFile = command_split[-1]
                 command_split = command_split[:-2]
 
@@ -80,8 +90,14 @@ def main():
         if redirect or redirectErr:
             with open(outputFile, "w") as file:
                 if redirectErr and not error:
-                    sys.stdout.write(output)
-                else:
+                    sys.stderr.write(output)
+                elif (redirect and not error) or (redirectErr and error):
+                    file.write(output)
+        elif append or appendErr:
+            with open(outputFile, "a") as file:
+                if appendErr and not error:
+                    sys.stderr.write(output)
+                elif (append and not error) or (appendErr and error):
                     file.write(output)
         else:
             sys.stdout.write(output)

@@ -54,7 +54,7 @@ def main():
                     os.chdir(abspath)
                 else:
                     error = True
-                    output = f"cd: {abspath}: No such file or directory" # Naive error, no msg for not a directory specifically
+                    output = f"cd: {abspath}: No such file or directory" + "\n" # Naive error, no msg for not a directory specifically
             case "echo":
                 output = " ".join(command_split[1:]) + "\n"
             case "type":

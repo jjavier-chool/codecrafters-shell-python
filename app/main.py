@@ -26,7 +26,7 @@ def cat(filenames):
         try:
             with open(filename, "r") as file:
                 content = file.read()
-                print(content)
+                print(content, end="")
         except FileNotFoundError:
             print("cat: {filename}: No such file or directory")
 

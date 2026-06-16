@@ -66,7 +66,7 @@ def main():
             with open(outputFile, "w") as file:
                 file.write(output)
         else:
-            print(output)
+            print(output, end="")
 
 
 if __name__ == "__main__":

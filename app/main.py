@@ -40,11 +40,11 @@ def main():
         command_split = shlex.split(command)
         process = command_split[0]
 
-        redirect = false
+        redirect = False
         output = ""
         outputFile = ""
         if command_split[-2] == ">" | command_split[-2] == "1>":
-            redirect = true
+            redirect = True
             outputFile = command_split[-1]
 
         match process:

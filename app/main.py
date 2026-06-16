@@ -60,7 +60,7 @@ def main():
             case "pwd":
                 print(os.getcwd())
             case "cat":
-		cat(command[4:])
+                cat(command[4:])
             case _:
                 executable, _ = isExecutable(process)
                 if executable:

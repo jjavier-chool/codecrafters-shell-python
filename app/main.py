@@ -43,7 +43,7 @@ def main():
         redirect = false
         output = ""
         outputFile = ""
-        if command_split[-2] == ">" || command_split[-2] == "1>":
+        if command_split[-2] == ">" | command_split[-2] == "1>":
             redirect = true
             outputFile = command_split[-1]
 

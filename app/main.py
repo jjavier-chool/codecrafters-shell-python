@@ -59,11 +59,11 @@ def main():
                 else:
                     print(f"cd: {abspath}: No such file or directory") # Naive error, no msg for not a directory specifically
             case "echo":
-                ouput = " ".join(command_split[1:]))
+                ouput = " ".join(command_split[1:])
             case "type":
                 output = type(command[5:])
             case "pwd":
-                output = os.getcwd())
+                output = os.getcwd()
             case "cat":
                 output = cat(command_split[1:])
             case "ls":

@@ -78,7 +78,7 @@ def main():
         if redirect or redirectErr:
             with open(outputFile, "w") as file:
                 file.write(output)
-        elif output != "":
+        else:
             sys.stdout.write(output)
 
 

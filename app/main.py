@@ -79,7 +79,9 @@ def main():
                     print(f"{command}: command not found")
         if redirect or redirectErr:
             with open(outputFile, "w") as file:
-                if redirect or (redirectErr and error):
+                if redirectErr and not error:
+                    sys.stdout.write(output)
+                else:
                     file.write(output)
         else:
             sys.stdout.write(output)

@@ -48,11 +48,11 @@ def main():
                 else:
                     print(f"cd: {abspath}: No such file or directory") # Naive error, no msg for not a directory specifically
             case "echo":
-                output = " ".join(command_split[1:])
+                output = " ".join(command_split[1:]) + "\n"
             case "type":
-                output = type(command[5:])
+                output = type(command[5:]) + "\n"
             case "pwd":
-                output = os.getcwd()
+                output = os.getcwd() + "\n"
             case _:
                 executable, _ = isExecutable(process)
                 if executable:
@@ -66,7 +66,7 @@ def main():
             with open(outputFile, "w") as file:
                 file.write(output)
         else:
-            print(output, end="")
+            sys.stdout.write(output)
 
 
 if __name__ == "__main__":

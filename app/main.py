@@ -70,12 +70,14 @@ def main():
                     elif redirectErr:
                         result = subprocess.run(command_split, stderr=subprocess.PIPE, text=True)
                         output = result.stderr
+                        if output:
+                            error = True
                     else:
                         subprocess.run(command_split)
 
                 else:
                     print(f"{command}: command not found")
-        if redirect or redirectErr:
+        if redirect or (redirectErr and error):
             with open(outputFile, "w") as file:
                 file.write(output)
         else:

@@ -74,19 +74,24 @@ def main():
             case _:
                 executable, _ = isExecutable(process)
                 if executable:
-                    if redirect:
-                        result = subprocess.run(command_split, stdout=subprocess.PIPE, text=True)
-                        output = result.stdout
-                    elif redirectErr:
-                        result = subprocess.run(command_split, stderr=subprocess.PIPE, text=True)
-                        output = result.stderr
-                        if output:
+                    if redirect or redirectErr or append or appendErr:
+                        # Capture stdout if it's a redirect/append, or stderr if it's an error redirect/append
+                        captureStdout = redirect or append
+                        result = subprocess.run(
+                            command_split,
+                            stdout=subprocess.PIPE if captureStdout else None,
+                            stderr=subprocess.PIPE if not captureStdout else None,
+                            text=True
+                        )
+                        output = result.stdout if captureStdout else result.stderr
+                        if not captureStdout and output:
                             error = True
                     else:
                         subprocess.run(command_split)
 
                 else:
-                    print(f"{command}: command not found")
+                    error = True
+                    output = f"{command}: command not found" + "\n"
         if redirect or redirectErr:
             with open(outputFile, "w") as file:
                 if redirectErr and not error:

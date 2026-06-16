@@ -31,7 +31,7 @@ def main():
         redirect = False
         output = ""
         outputFile = ""
-        if (len(command_split) > 2) && ((command_split[-2] == ">") | (command_split[-2] == "1>")):
+        if (len(command_split) > 2) & ((command_split[-2] == ">") | (command_split[-2] == "1>")):
             redirect = True
             outputFile = command_split[-1]
             command_split = command_split[:-2]

@@ -22,9 +22,9 @@ def type(command):
         print(f"{command}: not found")
 
 def cat(filenames):
-    for file in filenames:
+    for filename in filenames:
         try:
-            with open(absolute_path, "r") as file:
+            with open(filename, "r") as file:
                 content = file.read()
                 print(content)
         except FileNotFoundError:

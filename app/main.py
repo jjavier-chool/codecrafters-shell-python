@@ -58,7 +58,7 @@ def main():
                 if executable:
                     # text=True returns a string instead of bytes
                     # capture_output=True grabs stdout so we can save it to a variable
-                    result = subprocess.run(command_split, capture_output=True, text=True)
+                    result = subprocess.run(command_split, stdout=subprocess.PIPE, text=True)
                     output = result.stdout
                 else:
                     print(f"{command}: command not found")

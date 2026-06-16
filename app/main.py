@@ -15,11 +15,11 @@ def isExecutable(command):
 def type(command):
     executable, dir = isExecutable(command)
     if command in builtin:
-        return f"{command} is a shell builtin"
+        return f"{command} is a shell builtin" + "\n", False
     elif executable:
-        return f"{command} is {dir}"
+        return f"{command} is {dir}" + "\n", False
     else:
-        return f"{command}: not found"
+        return f"{command}: not found" + "\n", True
 
 def main():
     while True:
@@ -29,12 +29,19 @@ def main():
         process = command_split[0]
 
         redirect = False
+        redirectErr = False
+        error = False
         output = ""
         outputFile = ""
-        if (len(command_split) > 2) and ((command_split[-2] == ">") or (command_split[-2] == "1>")):
-            redirect = True
-            outputFile = command_split[-1]
-            command_split = command_split[:-2]
+        if len(command_split) >= 2:
+            if command_split[-2] in (">", "1>"):
+                redirect = True
+                outputFile = command_split[-1]
+                command_split = command_split[:-2]
+            elif command_split[-2] == "2>":
+                redirectErr = True
+                outputFile = command_split[-1]
+                command_split = command_split[:-2]
 
         match process:
             case "exit":
@@ -46,26 +53,32 @@ def main():
                 elif os.path.isdir(abspath):
                     os.chdir(abspath)
                 else:
-                    print(f"cd: {abspath}: No such file or directory") # Naive error, no msg for not a directory specifically
+                    error = True
+                    output = f"cd: {abspath}: No such file or directory" # Naive error, no msg for not a directory specifically
             case "echo":
                 output = " ".join(command_split[1:]) + "\n"
             case "type":
-                output = type(command[5:]) + "\n"
+                output, error = type(command[5:])
             case "pwd":
                 output = os.getcwd() + "\n"
             case _:
                 executable, _ = isExecutable(process)
                 if executable:
-                    # text=True returns a string instead of bytes
-                    # capture_output=True grabs stdout so we can save it to a variable
-                    result = subprocess.run(command_split, stdout=subprocess.PIPE, text=True)
-                    output = result.stdout
+                    if redirect:
+                        result = subprocess.run(command_split, stdout=subprocess.PIPE, text=True)
+                        output = result.stdout
+                    elif redirectErr:
+                        result = subprocess.run(command_split, stderr=subprocess.PIPE, text=True)
+                        output = result.stderr
+                    else:
+                        subprocess.run(command_split)
+
                 else:
                     print(f"{command}: command not found")
-        if redirect:
+        if redirect or redirectErr:
             with open(outputFile, "w") as file:
                 file.write(output)
-        else:
+        elif output != "":
             sys.stdout.write(output)
 
 

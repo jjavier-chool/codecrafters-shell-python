@@ -21,18 +21,6 @@ def type(command):
     else:
         return f"{command}: not found"
 
-def cat(filenames):
-    output = ""
-    for filename in filenames:
-        try:
-            with open(filename, "r") as file:
-                content = file.read()
-                output += content
-        except FileNotFoundError:
-            return f"cat: {filename}: No such file or directory"
-    return output
-
-
 def main():
     while True:
         sys.stdout.write("$ ")
@@ -65,15 +53,13 @@ def main():
                 output = type(command[5:])
             case "pwd":
                 output = os.getcwd()
-            case "cat":
-                output = cat(command_split[1:])
-            case "ls":
-                output = "\n".join(os.listdir('.')) + "\n"
             case _:
                 executable, _ = isExecutable(process)
                 if executable:
-                    subprocess.run(command_split)
-                    # not sure how to redirect output here yet
+                    # text=True returns a string instead of bytes
+                    # capture_output=True grabs stdout so we can save it to a variable
+                    result = subprocess.run(command_split, capture_output=True, text=True)
+                    output = result.stdout
                 else:
                     print(f"{command}: command not found")
         if redirect:

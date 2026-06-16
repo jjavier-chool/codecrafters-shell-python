@@ -79,6 +79,8 @@ def main():
         if redirect:
             with open(outputFile, "w") as file:
                 file.write(output)
+        else:
+            print(output)
 
 
 if __name__ == "__main__":

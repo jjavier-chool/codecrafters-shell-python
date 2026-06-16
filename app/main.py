@@ -46,6 +46,7 @@ def main():
         if (command_split[-2] == ">") | (command_split[-2] == "1>"):
             redirect = True
             outputFile = command_split[-1]
+            command_split = command_split[:-2]
 
         match process:
             case "exit":
@@ -59,7 +60,7 @@ def main():
                 else:
                     print(f"cd: {abspath}: No such file or directory") # Naive error, no msg for not a directory specifically
             case "echo":
-                ouput = " ".join(command_split[1:])
+                output = " ".join(command_split[1:])
             case "type":
                 output = type(command[5:])
             case "pwd":
@@ -67,7 +68,7 @@ def main():
             case "cat":
                 output = cat(command_split[1:])
             case "ls":
-                output = os.listdir('.')
+                output = "\n".join(os.listdir('.')) + "\n"
             case _:
                 executable, _ = isExecutable(process)
                 if executable:

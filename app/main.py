@@ -71,6 +71,22 @@ def completer(text: str, state: int) -> str | None:
 
     return None
 
+def display_matches(substitution: str, matches: list[str], longest_match_len: int) -> None:
+  """Print list of matches
+
+  Prints the found list of command matches to the terminal.
+
+  Args:
+      substitution (str): longest common prefix that all matches share
+      matches (list[str]): the list of matched commands to the user's prefix
+      longest_match_len (int): length of the longest match string
+  """
+  print()
+  print("  ".join(sorted(matches)))
+
+  sys.stdout.write("$ " + readline.get_line_buffer())
+  sys.stdout.flush()
+
 def isExecutable(command: str) -> tuple[bool, str]:
     """Determines whether a given command is executable
 
@@ -117,6 +133,7 @@ def main() -> None:
     """
     readline.set_completer(completer)
     readline.parse_and_bind("tab: complete")
+    readline.set_completion_display_matches_hook(display_matches)
 
     while True:
         # Print $ and obtain user input.

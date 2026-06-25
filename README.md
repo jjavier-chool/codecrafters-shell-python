@@ -3,32 +3,24 @@
 This is a starting point for Python solutions to the
 ["Build Your Own Shell" Challenge](https://app.codecrafters.io/courses/shell/overview).
 
-In this challenge, you'll build your own POSIX compliant shell that's capable of
+Challenge description: build your own POSIX compliant shell that's capable of
 interpreting shell commands, running external programs and builtin commands like
 cd, pwd, echo and more. Along the way, you'll learn about shell command parsing,
 REPLs, builtin commands, and more.
 
-**Note**: If you're viewing this repo on GitHub, head over to
-[codecrafters.io](https://codecrafters.io) to try the challenge.
+# Notes: documentation for utilized libraries
 
-# Passing the first stage
+- [sys](https://docs.python.org/3/library/sys.html)
+- [os](https://docs.python.org/3/library/os.html#module-os)
+- [os.path](https://docs.python.org/3/library/os.path.html#module-os.path) 
+- [shlex](https://docs.python.org/3/library/shlex.html)
+- [subprocess](https://docs.python.org/3/library/subprocess.html)
+- [readline](https://docs.python.org/3/library/readline.html)
 
-The entry point for your `shell` implementation is in `app/main.py`. Study and
-uncomment the relevant code, then run the command below to execute the tests on
-our servers:
+# Task completion
 
-```sh
-codecrafters submit
-```
-
-Time to move on to the next stage!
-
-# Stage 2 & beyond
-
-Note: This section is for stages 2 and beyond.
-
-1. Ensure you have `uv` installed locally
-1. Run `./your_program.sh` to run your program, which is implemented in
+1. Ensure `uv` is installed locally
+1. Run `./your_program.sh` to run the program, which is implemented in
    `app/main.py`.
-1. Run `codecrafters submit` to submit your solution to CodeCrafters. Test
-   output will be streamed to your terminal.
+1. Run `codecrafters submit` to submit a solution to CodeCrafters. Test
+   output will be streamed to the terminal.

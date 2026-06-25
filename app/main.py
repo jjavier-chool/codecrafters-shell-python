@@ -7,6 +7,50 @@ import os
 # Currently defined built-in commands
 builtin = ["pwd", "type", "echo", "exit"]
 
+def get_completions(prefix: str) -> list[str]:
+  """Gather all matching executables
+
+  Build a sorted list of all executables with a matching prefix, path & built-in
+
+  Args:
+      prefix (str): the user's inputted string to complete
+
+  Returns:
+      list[str]: the sorted list of command names
+
+  Exception:
+      PermissionError: not allowed to read file/directory
+      FileNotFoundError: file/directory DNE
+  """
+  # Set to automatically remove duplicates
+  matches = set()
+
+  # Built-ins
+  for b in builtin:
+    if b.startswith(prefix):
+      matches.add(b)
+
+  # External executables
+  path_env = os.environ.get("PATH", "")
+  for directory in path_env.split(os.pathsep):
+    # Skip if the path isn't a valid directory
+    if not os.path.isdir(directory):
+      continue
+    try:
+      # Every file in this directory
+      for filename in os.listdir(directory):
+        if filename.startswith(prefix):
+          filepath = os.path.join(directory, filename)
+          # Verify file is executable
+          if os.access(filepath, os.X_OK):
+            matches.add(filename)
+    except (PermissionError, FileNotFoundError):
+      continue
+
+  # Sort so they appear alphabetically
+  return sorted(list(matches))
+
+
 def completer(text: str, state: int) -> str | None:
     """Tab autocompletion
 
@@ -20,7 +64,7 @@ def completer(text: str, state: int) -> str | None:
         str: The name of the matching built-in command.
         None: No matching built-in command found.
     """
-    matches = [command for command in builtin if command.startswith(text)]
+    matches = get_completions(text)
 
     if state < len(matches):
         return matches[state] + " "

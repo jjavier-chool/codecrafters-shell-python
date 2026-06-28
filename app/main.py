@@ -190,8 +190,8 @@ def main() -> None:
     redirectErr = False
     append = False
     appendErr = False
-    error = False
-    output = ""
+    out_text = ""
+    err_text = ""
     outputFile = ""
     if len(command_split) >= 2:
       if command_split[-2] in (">", "1>"):
@@ -216,11 +216,11 @@ def main() -> None:
       case "exit":
         exit(0)
       case "echo":
-        output = " ".join(command_split[1:]) + "\n"
+        out_text = " ".join(command_split[1:]) + "\n"
       case "type":
-        output, error = type(command[5:])
+        out_text, error = type(command[5:])
       case "pwd":
-        output = os.getcwd() + "\n"
+        out_text = os.getcwd() + "\n"
       case "cd":
         abspath = command[3:]
         if abspath == "~":
@@ -228,46 +228,36 @@ def main() -> None:
         elif os.path.isdir(abspath):
           os.chdir(abspath)
         else:
-          error = True
           # Naive error: no specific message given for non-directory
-          output = f"cd: {abspath}: No such file or directory" + "\n"
+          err_text = f"cd: {abspath}: No such file or directory" + "\n"
       case _:
         executable, _ = isExecutable(process)
         if executable:
-          if redirect or redirectErr or append or appendErr:
-            # Capture stdout if it's a redirect/append, or stderr if it's an error redirect/append
-            captureStdout = redirect or append
-            result = subprocess.run(
-              command_split,
-              stdout=subprocess.PIPE if captureStdout else None,
-              stderr=subprocess.PIPE if not captureStdout else None,
-              text=True
-            )
-            output = result.stdout if captureStdout else result.stderr
-            if not captureStdout and output:
-              error = True
-            else:
-              subprocess.run(command_split)
+          result = subprocess.run(
+            command_split,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+          )
+          out_text = result.stdout
+          err_text = result.stderr
+        else:
+          err_text = f"{command}: command not found\n"
 
-          else:
-            error = True
-            output = f"{command}: command not found" + "\n"
-
-    # Perform redirecting/appending, or write to stdout.
-    if redirect or redirectErr:
-      with open(outputFile, "w") as file:
-        if redirectErr and not error:
-          sys.stderr.write(output)
-        elif (redirect and not error) or (redirectErr and error):
-          file.write(output)
-    elif append or appendErr:
-      with open(outputFile, "a") as file:
-        if appendErr and not error:
-          sys.stderr.write(output)
-        elif (append and not error) or (appendErr and error):
-          file.write(output)
+    if redirect or append:
+      mode = "a" if append else "w"
+      with open(outputFile, mode) as f:
+        f.write(out_text)
     else:
-      sys.stdout.write(output)
+      sys.stdout.write(out_text)
+
+    # 2. Route Standard Error
+    if redirectErr or appendErr:
+      mode = "a" if appendErr else "w"
+      with open(outputFile, mode) as f:
+        f.write(err_text)
+    else:
+      sys.stderr.write(err_text)
 
 
 if __name__ == "__main__":

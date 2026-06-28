@@ -223,7 +223,7 @@ def main() -> None:
       case "pwd":
         out_text = os.getcwd() + "\n"
       case "complete":
-        #here
+        pass
       case "cd":
         abspath = command[3:]
         if abspath == "~":

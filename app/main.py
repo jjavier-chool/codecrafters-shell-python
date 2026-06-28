@@ -175,6 +175,7 @@ def main() -> None:
   readline.set_completer(completer)
   readline.parse_and_bind("tab: complete")
   readline.set_completion_display_matches_hook(display_matches)
+  readline.set_completer_delims(' \t\n')
 
   while True:
     # Print $ and obtain user input.

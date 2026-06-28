@@ -5,7 +5,7 @@ import sys
 import os
 
 # Currently defined built-in commands
-builtin = ["pwd", "type", "echo", "exit"]
+builtin = ["pwd", "type", "echo", "exit", "complete"]
 
 def get_completions(prefix: str) -> list[str]:
   """Gather all matching executables
@@ -222,6 +222,8 @@ def main() -> None:
         out_text, error = type(command[5:])
       case "pwd":
         out_text = os.getcwd() + "\n"
+      case "complete":
+        #here
       case "cd":
         abspath = command[3:]
         if abspath == "~":

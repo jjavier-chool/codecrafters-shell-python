@@ -96,7 +96,7 @@ def completer(text: str, state: int) -> str | None:
     str: The name of the matching built-in command.
     None: No matching built-in command found.
   """
-  line = readline.get_line_buffer():
+  line = readline.get_line_buffer()
   if line.lstrip() == text:
     matches = get_completions(text)
   else:

@@ -6,7 +6,7 @@ import os
 
 # Currently defined built-in commands
 builtin = ["pwd", "type", "echo", "exit", "complete"]
-complete_map = {}
+complete_map: dict[str, str] = {}
 
 def get_completions(prefix: str) -> list[str]:
   """Gather all matching executables
@@ -84,6 +84,39 @@ def get_file_completions(prefix: str) -> list[str]:
 
   return sorted(matches)
 
+def get_script_completions(script_path: str, text: str, full_line: str) -> list[str]:
+  """Executes an external autocomplete script and parses its output lines
+
+  Executes the given script and completes the user's line according to registered completes
+
+  Args:
+    script_path (str): Path to the executable autocompleter script
+    text (str): The current word prefix being completed
+    full_line (str): The entire string inside the prompt buffer
+
+  Returns:
+    list[str]: list of completion candidates from each line of output
+  """
+  try:
+    env = os.environ.copy()
+    env["COMP_LINE"] = full_line
+    env["COMP_POINT"] = str(len(full_line))
+    result = subprocess.run(
+      [script_path, text],
+      stdout=subprocess.PIPE,
+      stderr=subprocess.PIPE,
+      text=True,
+      env=env
+    )
+    if result.stdout:
+      return sorted(result.stdout.split())
+
+  except Exception:
+    pass
+
+  return []
+
+
 def completer(text: str, state: int) -> str | None:
   """Tab autocompletion
 
@@ -101,7 +134,13 @@ def completer(text: str, state: int) -> str | None:
   if line.lstrip() == text:
     matches = get_completions(text)
   else:
-    matches = get_file_completions(text)
+    line_tokens = line.split()
+    process = line_tokens[0] if line_tokens else ""
+    if process in complete_map:
+      script = complete_map[process]
+      matches = get_script_completions(script, text, line)
+    else:
+      matches = get_file_completions(text)
 
   if state < len(matches):
     match = matches[state]
@@ -242,18 +281,8 @@ def main() -> None:
           # Naive error: no specific message given for non-directory
           err_text = f"cd: {abspath}: No such file or directory" + "\n"
       case _:
-        if process in complete_map:
-          name = process
-          process = complete_map[process]
         executable, _ = isExecutable(process)
-        if executable and name in complete_map:
-          result = subprocess.run(
-            process,
-            stdout=subprocess.PIPE,
-            text=True
-          )
-          out_text = f"{name} {result.stdout}" + "\n"
-        elif executable:
+        if executable:
           result = subprocess.run(
             command_split,
             stdout=subprocess.PIPE,

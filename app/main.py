@@ -298,14 +298,24 @@ def main() -> None:
           elif command_split[1] == "-C" and len(command_split) > 3:
             complete_map[command_split[3]] = command_split[2]
       case "jobs":
+        to_delete = []
         for count, (bgprocess, command) in jobs_map.items():
           schar = ''
           if count == jobcount-1:
             schar = '+'
           elif count == jobcount-2:
             schar = '-'
-          status = 'Done' if bgprocess.poll() == 0 else 'Running'
-          out_text += f"[{count}]{schar}  {status:<24}{command}{' &' if status != 'Done' else ''}" + "\n"
+
+          is_done = bgprocess.poll() is not None
+          status = 'Done' if is_done else 'Running'
+
+          out_text += f"[{count}]{schar}  {status:<24}{command}{'' if is_done else ' &'}\n"
+
+          if is_done:
+            to_delete.append(count)
+
+        for dead_id in to_delete:
+          del jobs_map[dead_id]
       case _:
         executable, _ = isExecutable(process)
         if executable:

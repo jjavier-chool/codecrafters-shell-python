@@ -255,8 +255,6 @@ def main() -> None:
   readline.set_completion_display_matches_hook(display_matches)
   readline.set_completer_delims(' \t\n')
 
-  jobcount = 1
-
   while True:
     # Print $ and obtain user input.
     sys.stdout.write("$ ")
@@ -336,9 +334,9 @@ def main() -> None:
         if executable:
           if background:
             bgprocess = subprocess.Popen(command_split)
-            out_text = f"[{jobcount}] {bgprocess.pid}" + "\n"
-            jobs_map[jobcount] = (bgprocess, " ".join(command_split))
-            jobcount += 1
+            jobid = max(jobs_map)+1 if jobs_map else 1
+            out_text = f"[{jobid}] {bgprocess.pid}" + "\n"
+            jobs_map[jobid] = (bgprocess, " ".join(command_split))
           else:
             result = subprocess.run(
               command_split,

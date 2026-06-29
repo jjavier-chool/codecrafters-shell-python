@@ -214,6 +214,34 @@ def type(command: str) -> tuple[str, bool]:
   else:
     return f"{command}: not found" + "\n", True
 
+def jobs(called: bool) -> str:
+  out_text = ""
+  to_delete = []
+  living_ids = sorted(jobs_map.keys())
+  plus_id  = living_ids[-1] if len(living_ids) >= 1 else None
+  minus_id = living_ids[-2] if len(living_ids) >= 2 else None
+
+  for count, (bgprocess, command) in jobs_map.items():
+    schar = ''
+    if count == plus_id:
+      schar = '+'
+    elif count == minus_id:
+      schar = '-'
+
+    is_done = bgprocess.poll() is not None
+    status = 'Done' if is_done else 'Running'
+
+    if (not called and is_done) or called:
+      out_text += f"[{count}]{schar}  {status:<24}{command}{'' if is_done else ' &'}\n"
+
+    if is_done:
+      to_delete.append(count)
+
+  for dead_id in to_delete:
+    del jobs_map[dead_id]
+
+  return out_text
+
 def main() -> None:
   """Main parsing logic of Shell
 
@@ -237,6 +265,10 @@ def main() -> None:
       continue
     command_split = shlex.split(command)
     process = command_split[0]
+
+    bg_check = jobs(False)
+    if bg_check:
+      print(bg_check)
 
     # Checking if there are requested stdout and stderr redirects to files OR background
     redirect = False
@@ -278,6 +310,8 @@ def main() -> None:
         out_text, error = type(command[5:])
       case "pwd":
         out_text = os.getcwd() + "\n"
+      case "jobs":
+        out_text = jobs(True)
       case "cd":
         abspath = command[3:]
         if abspath == "~":
@@ -297,28 +331,6 @@ def main() -> None:
             del complete_map[command_split[2]]
           elif command_split[1] == "-C" and len(command_split) > 3:
             complete_map[command_split[3]] = command_split[2]
-      case "jobs":
-        to_delete = []
-        living_ids = sorted(jobs_map.keys())
-        plus_id  = living_ids[-1] if len(living_ids) >= 1 else None
-        minus_id = living_ids[-2] if len(living_ids) >= 2 else None
-        for count, (bgprocess, command) in jobs_map.items():
-          schar = ''
-          if count == plus_id:
-            schar = '+'
-          elif count == minus_id:
-            schar = '-'
-
-          is_done = bgprocess.poll() is not None
-          status = 'Done' if is_done else 'Running'
-
-          out_text += f"[{count}]{schar}  {status:<24}{command}{'' if is_done else ' &'}\n"
-
-          if is_done:
-            to_delete.append(count)
-
-        for dead_id in to_delete:
-          del jobs_map[dead_id]
       case _:
         executable, _ = isExecutable(process)
         if executable:

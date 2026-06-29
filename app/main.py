@@ -84,7 +84,7 @@ def get_file_completions(prefix: str) -> list[str]:
 
   return sorted(matches)
 
-def get_script_completions(script_path: str, cmd_name: str, current_word: str, prev_word: str) -> list[str]:
+def get_script_completions(script_path: str, cmd_name: str, current_word: str, prev_word: str, full_line: str) -> list[str]:
   """Executes an external autocomplete script and parses its output lines
 
   Executes the given script and completes the user's line according to registered completes.
@@ -94,16 +94,21 @@ def get_script_completions(script_path: str, cmd_name: str, current_word: str, p
     cmd_name (str): argv[1] command name
     current_word (str): argv[2] current word being completed
     prev_word (str): argv[3] preceding word (or empty string)
+    full_line (str): The entire string inside the prompt buffer
 
   Returns:
     list[str]: list of completion candidates from each line of output
   """
   try:
+    env = os.environ.copy()
+    env["COMP_LINE"] = full_line
+    env["COMP_POINT"] = str(len(full_line))
     result = subprocess.run(
       [script_path, cmd_name, current_word, prev_word],
       stdout=subprocess.PIPE,
       stderr=subprocess.PIPE,
-      text=True
+      text=True,
+      env=env
     )
     if result.stdout:
       return sorted(result.stdout.split())
@@ -140,7 +145,7 @@ def completer(text: str, state: int) -> str | None:
 
     if first_command in complete_map:
       script_file = complete_map[first_command]
-      matches = get_script_completions(script_file, first_command, text, prev_word)
+      matches = get_script_completions(script_file, first_command, text, prev_word, line)
     else:
       matches = get_file_completions(text)
 

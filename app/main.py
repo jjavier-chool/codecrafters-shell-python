@@ -302,7 +302,8 @@ def main() -> None:
         if executable:
           if background:
             bgprocess = subprocess.Popen(command_split)
-            out_text = f"[{job_count++}] {bgprocess.pid}" + "\n"
+            out_text = f"[{job_count}] {bgprocess.pid}" + "\n"
+            job_count += 1
           else:
             result = subprocess.run(
               command_split,

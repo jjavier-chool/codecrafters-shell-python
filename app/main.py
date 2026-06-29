@@ -1,17 +1,16 @@
+# main.py
 import subprocess
 import readline
 import shlex
 import sys
 import os
 
-from builtins import ShellContext, BUILTIN_MAP
-
-# # Currently defined built-in commands
-# builtin = ["pwd", "type", "echo", "exit", "complete", "jobs"]
-# # User's registered complete scripts
-# complete_map: dict[str, str] = {}
-# # Current background jobs
-# jobs_map: dict[int, (subprocess.Popen, str)] = {}
+# Currently defined built-in commands
+builtin = ["pwd", "type", "echo", "exit", "complete", "jobs"]
+# User's registered complete scripts
+complete_map: dict[str, str] = {}
+# Current background jobs
+jobs_map: dict[int, (subprocess.Popen, str)] = {}
 
 def get_completions(prefix: str) -> list[str]:
   """Gather all matching executables
@@ -195,24 +194,24 @@ def isExecutable(command: str) -> tuple[bool, str]:
       return True, dir + "/" + command
   return False, ""
 
-# def type(command: str) -> tuple[str, bool]:
-#   """Type built-in
+def shell_type(command: str) -> tuple[str, bool]:
+  """Type built-in
 
-#   This function determines the type of the given command: builtin, executable, or not found.
+  This function determines the type of the given command: builtin, executable, or not found.
 
-#   Args:
-#     command (str): The command requested by the user
+  Args:
+    command (str): The command requested by the user
 
-#   Returns:
-#     tuple[str, bool]: The proper type reporting, T/F whether the command was found
-#   """
-#   executable, dir = isExecutable(command)
-#   if command in builtin:
-#     return f"{command} is a shell builtin" + "\n", False
-#   elif executable:
-#     return f"{command} is {dir}" + "\n", False
-#   else:
-#     return f"{command}: not found" + "\n", True
+  Returns:
+    tuple[str, bool]: The proper type reporting, T/F whether the command was found
+  """
+  executable, dir = isExecutable(command)
+  if command in builtin:
+    return f"{command} is a shell builtin" + "\n", False
+  elif executable:
+    return f"{command} is {dir}" + "\n", False
+  else:
+    return f"{command}: not found" + "\n", True
 
 def jobs(called: bool) -> str:
   out_text = ""
@@ -403,12 +402,11 @@ def jobs(called: bool) -> str:
 #       sys.stdout.flush()
 
 
-def run_command(tokens: list[str], ctx: ShellContext, stdin_data: str = "", background: bool = False,) -> tuple[str, str]:
+def run_command(command: str = "", command_split: list[str], stdin_data: str = "", background: bool = False,) -> tuple[str, str]:
   """Executes either a built-in or an external command.
 
   Args:
     tokens: Command and arguments.
-    ctx: Shared shell state.
     stdin_data: Data to provide on stdin (used by pipelines).
     background: Whether to execute in the background.
 
@@ -418,24 +416,52 @@ def run_command(tokens: list[str], ctx: ShellContext, stdin_data: str = "", back
   if not tokens:
     return "", ""
 
-  command = tokens[0]
+  process = command_split[0]
 
   # Built-in
-  if command in BUILTIN_MAP:
-    return BUILTIN_MAP[command](tokens[1:], ctx)
+  if process in builtin:
+    match process:
+      case "exit":
+        exit(0)
+      case "echo":
+        return " ".join(command_split[1:]) + "\n", ""
+      case "type":
+        out_text, error = type(command[5:])
+      case "pwd":
+        out_text = os.getcwd() + "\n"
+      case "jobs":
+        out_text = jobs(True)
+      case "cd":
+        abspath = command[3:]
+        if abspath == "~":
+          os.chdir(os.path.expanduser("~"))
+        elif os.path.isdir(abspath):
+          os.chdir(abspath)
+        else:
+          err_text = f"cd: {abspath}: No such file or directory" + "\n"
+      case "complete":
+        if len(command_split) > 2:
+          if command_split[1] == "-p":
+            if command_split[2] in complete_map:
+              out_text = f"complete -C '{complete_map[command_split[2]]}' {command_split[2]}" + "\n"
+            else:
+              err_text = f"complete: {command_split[2]}: no completion specification" + "\n"
+          elif command_split[1] == "-r" and command_split[2] in complete_map:
+            del complete_map[command_split[2]]
+          elif command_split[1] == "-C" and len(command_split) > 3:
+            complete_map[command_split[3]] = command_split[2]
 
-  executable, _ = isExecutable(command)
+  executable, _ = isExecutable(process)
 
   if not executable:
-    return "", f"{command}: command not found\n"
+    return "", f"{process}: command not found\n"
 
   if background:
-    process = subprocess.Popen(tokens)
+    bgprocess = subprocess.Popen(command_split)
+    jobid = max(jobs_map) + 1 if jobs_map else 1
+    jobs_map[jobid] = (bgprocess, " ".join(tokens))
 
-    jobid = max(ctx.jobs_map) + 1 if ctx.jobs_map else 1
-    ctx.jobs_map[jobid] = (process, " ".join(tokens))
-
-    return f"[{jobid}] {process.pid}\n", ""
+    return f"[{jobid}] {bgprocess.pid}\n", ""
 
   result = subprocess.run(
     tokens,
@@ -452,11 +478,6 @@ def main() -> None:
   readline.parse_and_bind("tab: complete")
   readline.set_completion_display_matches_hook(display_matches)
   readline.set_completer_delims(" \t\n")
-
-  ctx = ShellContext(
-    complete_map=complete_map,
-    jobs_map=jobs_map,
-  )
 
   while True:
     sys.stdout.write("$ ")
@@ -518,15 +539,15 @@ def main() -> None:
       stdin = ""
 
       for stage in pipeline:
-        out_text, err = run_command(stage, ctx, stdin)
+        out_text, err = run_command(stage, stdin)
         stdin = out_text
         err_text += err
 
     else:
 
       out_text, err_text = run_command(
+        command,
         command_split,
-        ctx,
         background=background,
       )
 

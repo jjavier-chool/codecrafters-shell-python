@@ -427,7 +427,7 @@ def run_command(command_split: list[str], command: str = "", stdin_data: str = "
       case "echo":
         return " ".join(command_split[1:]) + "\n", ""
       case "type":
-        out_text, error = type(command[5:])
+        out_text, error = shell_type(command[5:])
         if error:
           return "", out_text
         else:

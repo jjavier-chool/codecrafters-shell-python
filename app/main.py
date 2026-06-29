@@ -323,33 +323,56 @@ def run_command(command_split: list[str], command: str = "", stdin_data: str = "
 def handle_pipeline(command_split: list[str]) -> tuple[str, str]:
   """
   Parses a pipeline into segments and executes them in sequence.
+  Supports builtins + executables correctly.
   """
-  # Split the list of tokens by the pipe character
   segments: list[list[str]] = []
-  current_segment: list[str] = []
-    
+  current: list[str] = []
+
   for token in command_split:
     if token == "|":
-      segments.append(current_segment)
-      current_segment = []
+      if current:
+        segments.append(current)
+      current = []
     else:
-      current_segment.append(token)
-  segments.append(current_segment)
+      current.append(token)
 
-  # Chain the commands
-  final_stdout = ""
+  if current:
+    segments.append(current)
+
+  stdin_data = ""
   final_stderr = ""
-    
-  # We pipe the output of one segment into the input of the next
-  input_data = ""
-    
+
   for segment in segments:
-    out, err = run_command(segment, " ".join(segment), stdin_data=input_data)
-    final_stdout = out
+    if not segment:
+      continue
+
+    cmd = segment[0]
+
+    if cmd in builtin:
+      out, err = run_command(
+        segment,
+        command=" ".join(segment),
+        stdin_data=stdin_data
+      )
+
+      stdin_data = out
+      final_stderr += err
+      continue
+
+    process = subprocess.Popen(
+      segment,
+      stdin=subprocess.PIPE,
+      stdout=subprocess.PIPE,
+      stderr=subprocess.PIPE,
+      text=True
+    )
+
+    out, err = process.communicate(input=stdin_data or None)
+
+    stdin_data = out
     final_stderr += err
-    input_data = out # The output of this stage is the input for the next
-        
-  return final_stdout, final_stderr
+
+  return stdin_data, final_stderr
 
 def main() -> None:
   readline.set_completer(completer)

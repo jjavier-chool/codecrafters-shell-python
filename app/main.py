@@ -5,7 +5,7 @@ import sys
 import os
 
 # Currently defined built-in commands
-builtin = ["pwd", "type", "echo", "exit", "complete"]
+builtin = ["pwd", "type", "echo", "exit", "complete", "jobs"]
 # User's registered complete scripts
 complete_map: dict[str, str] = {}
 
@@ -290,6 +290,8 @@ def main() -> None:
             del complete_map[command_split[2]]
           elif command_split[1] == "-C" and len(command_split) > 3:
             complete_map[command_split[3]] = command_split[2]
+      case "jobs":
+        pass
       case _:
         executable, _ = isExecutable(process)
         if executable:

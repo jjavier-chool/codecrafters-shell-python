@@ -298,9 +298,7 @@ def main() -> None:
             complete_map[command_split[3]] = command_split[2]
       case "jobs":
         for count, (pid, command) in jobs_map.items():
-          #check if first somehow here
-          #status = job_status(pid) #handling here for terminated/completed prob
-          out_text += f"[{count}]{'+' if count == jobcount-1 else ''}  {'Running':<24}{command}" + "\n"
+          out_text += f"[{count}]{'+' if (count == jobcount-1) else ''}  {'Running':<24}{command}" + "\n"
       case _:
         executable, _ = isExecutable(process)
         if executable:

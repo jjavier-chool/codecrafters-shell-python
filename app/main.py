@@ -249,7 +249,7 @@ def main() -> None:
         if executable and name in complete_map:
           result = subprocess.run(
             process,
-            stdout=subprocess.PIPE
+            stdout=subprocess.PIPE,
             text=True
           )
           out_text = f"{name} {result.stdout}" + "\n"

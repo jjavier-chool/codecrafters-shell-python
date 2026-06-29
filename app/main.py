@@ -1,5 +1,6 @@
 import subprocess
 import readline
+import psutil
 import shlex
 import sys
 import os
@@ -8,6 +9,8 @@ import os
 builtin = ["pwd", "type", "echo", "exit", "complete", "jobs"]
 # User's registered complete scripts
 complete_map: dict[str, str] = {}
+# Current background jobs
+job_map: dict[int, (int, str)] = {}
 
 def get_completions(prefix: str) -> list[str]:
   """Gather all matching executables
@@ -176,6 +179,27 @@ def display_matches(substitution: str, matches: list[str], longest_match_len: in
   sys.stdout.write("$ " + readline.get_line_buffer())
   sys.stdout.flush()
 
+def job_status(pid: int) -> str:
+  """Get status of job
+
+  Returns the current status of the given job
+
+  Args:
+    pid (int): the given job's process ID number
+
+  Returns:
+    str: the status string (e.g., running, sleeping, zombie)
+  """
+  try:
+    process = psutil.Process(pid)
+    status = process.status()
+    return status
+        
+  except psutil.NoSuchProcess:
+    return "completed or terminated"
+  except psutil.AccessDenied:
+    pass
+
 def isExecutable(command: str) -> tuple[bool, str]:
   """Determines whether a given command is executable
 
@@ -295,13 +319,17 @@ def main() -> None:
           elif command_split[1] == "-C" and len(command_split) > 3:
             complete_map[command_split[3]] = command_split[2]
       case "jobs":
-        pass
+        for count, (pid, command) in jobs_map.items():
+          #check if first somehow here
+          status = job_status(pid) #handling here for terminated/completed prob
+          out_text += f"[{count}]+  {status:<24}{command}" + "\n"
       case _:
         executable, _ = isExecutable(process)
         if executable:
           if background:
             bgprocess = subprocess.Popen(command_split)
             out_text = f"[{jobcount}] {bgprocess.pid}" + "\n"
+            job_map[jobcount] = (bgprocess.pid, " ".join(command_split) + " &")
             jobcount += 1
           else:
             result = subprocess.run(

@@ -8,8 +8,6 @@ import os
 builtin = ["pwd", "type", "echo", "exit", "complete", "jobs"]
 # User's registered complete scripts
 complete_map: dict[str, str] = {}
-# The background jobs counter
-job_count = 1
 
 def get_completions(prefix: str) -> list[str]:
   """Gather all matching executables
@@ -245,6 +243,7 @@ def main() -> None:
     out_text = ""
     err_text = ""
     outputFile = ""
+    jobcount = 1
     if len(command_split) >= 2:
       if command_split[-2] in (">", "1>"):
         redirect = True
@@ -302,8 +301,8 @@ def main() -> None:
         if executable:
           if background:
             bgprocess = subprocess.Popen(command_split)
-            out_text = f"[{job_count}] {bgprocess.pid}" + "\n"
-            job_count += 1
+            out_text = f"[{jobcount}] {bgprocess.pid}" + "\n"
+            jobcount += 1
           else:
             result = subprocess.run(
               command_split,

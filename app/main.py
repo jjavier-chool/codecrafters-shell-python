@@ -8,6 +8,8 @@ import os
 builtin = ["pwd", "type", "echo", "exit", "complete", "jobs"]
 # User's registered complete scripts
 complete_map: dict[str, str] = {}
+# The background jobs counter
+job_count = 1
 
 def get_completions(prefix: str) -> list[str]:
   """Gather all matching executables
@@ -234,11 +236,12 @@ def main() -> None:
     command_split = shlex.split(command)
     process = command_split[0]
 
-    # Checking if there are requested stdout and stderr redirects to files.
+    # Checking if there are requested stdout and stderr redirects to files OR background
     redirect = False
     redirectErr = False
     append = False
     appendErr = False
+    background = False
     out_text = ""
     err_text = ""
     outputFile = ""
@@ -259,6 +262,9 @@ def main() -> None:
         appendErr = True
         outputFile = command_split[-1]
         command_split = command_split[:-2]
+      elif command_split[-1] == "&":
+        background = True
+        command_split = command_split[:-1]
 
     # Performing the user's given process.
     match process:
@@ -277,7 +283,6 @@ def main() -> None:
         elif os.path.isdir(abspath):
           os.chdir(abspath)
         else:
-          # Naive error: no specific message given for non-directory
           err_text = f"cd: {abspath}: No such file or directory" + "\n"
       case "complete":
         if len(command_split) > 2:
@@ -295,14 +300,18 @@ def main() -> None:
       case _:
         executable, _ = isExecutable(process)
         if executable:
-          result = subprocess.run(
-            command_split,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
-          )
-          out_text = result.stdout
-          err_text = result.stderr
+          if background:
+            bgprocess = subprocess.Popen(command_split)
+            out_text = f"[{job_count++}] {bgprocess.pid}" + "\n"
+          else:
+            result = subprocess.run(
+              command_split,
+              stdout=subprocess.PIPE,
+              stderr=subprocess.PIPE,
+              text=True
+            )
+            out_text = result.stdout
+            err_text = result.stderr
         else:
           err_text = f"{command}: command not found\n"
 

@@ -1,6 +1,5 @@
 import subprocess
 import readline
-import psutil
 import shlex
 import sys
 import os
@@ -178,27 +177,6 @@ def display_matches(substitution: str, matches: list[str], longest_match_len: in
 
   sys.stdout.write("$ " + readline.get_line_buffer())
   sys.stdout.flush()
-
-def job_status(pid: int) -> str:
-  """Get status of job
-
-  Returns the current status of the given job
-
-  Args:
-    pid (int): the given job's process ID number
-
-  Returns:
-    str: the status string (e.g., running, sleeping, zombie)
-  """
-  try:
-    process = psutil.Process(pid)
-    status = process.status()
-    return status
-        
-  except psutil.NoSuchProcess:
-    return "completed or terminated"
-  except psutil.AccessDenied:
-    pass
 
 def isExecutable(command: str) -> tuple[bool, str]:
   """Determines whether a given command is executable

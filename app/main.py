@@ -402,7 +402,7 @@ def jobs(called: bool) -> str:
 #       sys.stdout.flush()
 
 
-def run_command(command: str = "", command_split: list[str], stdin_data: str = "", background: bool = False,) -> tuple[str, str]:
+def run_command(command_split: list[str], command: str = "", stdin_data: str = "", background: bool = False,) -> tuple[str, str]:
   """Executes either a built-in or an external command.
 
   Args:
@@ -427,10 +427,14 @@ def run_command(command: str = "", command_split: list[str], stdin_data: str = "
         return " ".join(command_split[1:]) + "\n", ""
       case "type":
         out_text, error = type(command[5:])
+        if error:
+          return "", out_text
+        else:
+          return out_text, ""
       case "pwd":
-        out_text = os.getcwd() + "\n"
+        return os.getcwd() + "\n", ""
       case "jobs":
-        out_text = jobs(True)
+        return jobs(True), ""
       case "cd":
         abspath = command[3:]
         if abspath == "~":
@@ -438,18 +442,20 @@ def run_command(command: str = "", command_split: list[str], stdin_data: str = "
         elif os.path.isdir(abspath):
           os.chdir(abspath)
         else:
-          err_text = f"cd: {abspath}: No such file or directory" + "\n"
+          return "", f"cd: {abspath}: No such file or directory" + "\n"
       case "complete":
         if len(command_split) > 2:
           if command_split[1] == "-p":
             if command_split[2] in complete_map:
-              out_text = f"complete -C '{complete_map[command_split[2]]}' {command_split[2]}" + "\n"
+              return f"complete -C '{complete_map[command_split[2]]}' {command_split[2]}" + "\n", ""
             else:
-              err_text = f"complete: {command_split[2]}: no completion specification" + "\n"
+              return "", f"complete: {command_split[2]}: no completion specification" + "\n"
           elif command_split[1] == "-r" and command_split[2] in complete_map:
             del complete_map[command_split[2]]
+            return "", ""
           elif command_split[1] == "-C" and len(command_split) > 3:
             complete_map[command_split[3]] = command_split[2]
+            return "", ""
 
   executable, _ = isExecutable(process)
 
@@ -539,15 +545,15 @@ def main() -> None:
       stdin = ""
 
       for stage in pipeline:
-        out_text, err = run_command(stage, stdin)
+        out_text, err = run_command(stage, stdin_data=stdin)
         stdin = out_text
         err_text += err
 
     else:
 
       out_text, err_text = run_command(
-        command,
         command_split,
+        command=command,
         background=background,
       )
 

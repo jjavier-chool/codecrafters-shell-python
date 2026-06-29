@@ -242,12 +242,56 @@ def jobs(called: bool) -> str:
 
   return out_text
 
-def run_command(command_split: list[str], command: str = "", stdin_data: str = "", background: bool = False,) -> tuple[str, str]:
-  """Executes either a built-in or an external command.
+def run_builtin(command_split: list[str]) -> tuple[str, str]:
+  """
+
+  """
+  if not command_split or not command_split[0]:
+    return "", ""
+
+  process = command_split[0]
+
+  match process:
+    case "exit":
+      exit(0)
+    case "echo":
+      return " ".join(command_split[1:]) + "\n", ""
+    case "type":
+      out_text, error = shell_type(command_split[1])
+      if error:
+        return "", out_text
+      else:
+        return out_text, ""
+    case "pwd":
+      return os.getcwd() + "\n", ""
+    case "jobs":
+      return jobs(True), ""
+    case "cd":
+      abspath = command_split[1]
+      if abspath == "~":
+        os.chdir(os.path.expanduser("~"))
+      elif os.path.isdir(abspath):
+        os.chdir(abspath)
+      else:
+        return "", f"cd: {abspath}: No such file or directory" + "\n"
+    case "complete":
+      if len(command_split) > 2:
+        if command_split[1] == "-p":
+          if command_split[2] in complete_map:
+            return f"complete -C '{complete_map[command_split[2]]}' {command_split[2]}" + "\n", ""
+          else:
+            return "", f"complete: {command_split[2]}: no completion specification" + "\n"
+        elif command_split[1] == "-r" and command_split[2] in complete_map:
+          del complete_map[command_split[2]]
+        elif command_split[1] == "-C" and len(command_split) > 3:
+          complete_map[command_split[3]] = command_split[2]
+  return "", ""
+
+def run_command(command_split: list[str], stdin_data: str = "", background: bool = False,) -> tuple[str, str]:
+  """Executes an external command.
 
   Args:
     command_split: Command and arguments
-    command: raw user input
     stdin_data: Data to provide on stdin (used by pipelines)
     background: Whether to execute in the background
 
@@ -258,45 +302,6 @@ def run_command(command_split: list[str], command: str = "", stdin_data: str = "
     return "", ""
 
   process = command_split[0]
-
-  # Built-in
-  if process in builtin:
-    match process:
-      case "exit":
-        exit(0)
-      case "echo":
-        return " ".join(command_split[1:]) + "\n", ""
-      case "type":
-        out_text, error = shell_type(" ".join(command_split[1:]))
-        if error:
-          return "", out_text
-        else:
-          return out_text, ""
-      case "pwd":
-        return os.getcwd() + "\n", ""
-      case "jobs":
-        return jobs(True), ""
-      case "cd":
-        abspath = command[3:]
-        if abspath == "~":
-          os.chdir(os.path.expanduser("~"))
-        elif os.path.isdir(abspath):
-          os.chdir(abspath)
-        else:
-          return "", f"cd: {abspath}: No such file or directory" + "\n"
-      case "complete":
-        if len(command_split) > 2:
-          if command_split[1] == "-p":
-            if command_split[2] in complete_map:
-              return f"complete -C '{complete_map[command_split[2]]}' {command_split[2]}" + "\n", ""
-            else:
-              return "", f"complete: {command_split[2]}: no completion specification" + "\n"
-          elif command_split[1] == "-r" and command_split[2] in complete_map:
-            del complete_map[command_split[2]]
-            return "", ""
-          elif command_split[1] == "-C" and len(command_split) > 3:
-            complete_map[command_split[3]] = command_split[2]
-            return "", ""
 
   executable, _ = isExecutable(process)
 
@@ -343,13 +348,8 @@ def handle_pipeline(command_split: list[str]) -> tuple[str, str]:
     cmd = segment[0]
 
     if cmd in builtin:
-      out, err = run_command(
-        segment,
-        command=" ".join(segment),
-        stdin_data=""
-      )
+      out, err = run_builtin(segment)
 
-      # convert builtin output into a PIPE SOURCE for next stage
       prev_process = out
       final_err += err
       continue
@@ -440,11 +440,13 @@ def main() -> None:
     if "|" in command_split:
       out_text, err_text = handle_pipeline(command_split)
     else:
-      out_text, err_text = run_command(
-        command_split,
-        command=command,
-        background=background,
-      )
+      if command_split[0] in builtin:
+        out_text, err_text = run_builtin(command_split)
+      else:
+        out_text, err_text = run_command(
+          command_split,
+          background=background,
+        )
 
     if redirect or append:
       mode = "a" if append else "w"

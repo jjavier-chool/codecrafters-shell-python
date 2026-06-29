@@ -298,56 +298,83 @@ def main() -> None:
         background = True
         command_split = command_split[:-1]
 
-    # Performing the user's given process.
-    match process:
-      case "exit":
-        exit(0)
-      case "echo":
-        out_text = " ".join(command_split[1:]) + "\n"
-      case "type":
-        out_text, error = type(command[5:])
-      case "pwd":
-        out_text = os.getcwd() + "\n"
-      case "jobs":
-        out_text = jobs(True)
-      case "cd":
-        abspath = command[3:]
-        if abspath == "~":
-          os.chdir(os.path.expanduser("~"))
-        elif os.path.isdir(abspath):
-          os.chdir(abspath)
-        else:
-          err_text = f"cd: {abspath}: No such file or directory" + "\n"
-      case "complete":
-        if len(command_split) > 2:
-          if command_split[1] == "-p":
-            if command_split[2] in complete_map:
-              out_text = f"complete -C '{complete_map[command_split[2]]}' {command_split[2]}" + "\n"
-            else:
-              err_text = f"complete: {command_split[2]}: no completion specification" + "\n"
-          elif command_split[1] == "-r" and command_split[2] in complete_map:
-            del complete_map[command_split[2]]
-          elif command_split[1] == "-C" and len(command_split) > 3:
-            complete_map[command_split[3]] = command_split[2]
-      case _:
-        executable, _ = isExecutable(process)
-        if executable:
-          if background:
-            bgprocess = subprocess.Popen(command_split)
-            jobid = max(jobs_map)+1 if jobs_map else 1
-            out_text = f"[{jobid}] {bgprocess.pid}" + "\n"
-            jobs_map[jobid] = (bgprocess, " ".join(command_split))
+    if "|" in command_split:
+      pipe_idx = command_split.index("|")
+      cmd1_tokens = command_split[:pipe_idx]
+      cmd2_tokens = command_split[pipe_idx + 1:]
+
+      exe1, _ = isExecutable(cmd1_tokens[0])
+      exe2, _ = isExecutable(cmd2_tokens[0])
+
+      if not exe1:
+        err_text = f"{cmd1_tokens[0]}: command not found\n"
+      elif not exe2:
+        err_text = f"{cmd2_tokens[0]}: command not found\n"
+      else:
+        p1 = subprocess.Popen(
+          cmd1_tokens, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+        p2 = subprocess.Popen(
+          cmd2_tokens, stdin=p1.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+        p1.stdout.close()
+        out_text, err_text = p2.communicate()
+        if p1.stderr:
+          p1_err = p1.stderr.read()
+          if p1_err:
+            sys.stderr.write(p1_err)
+
+    else:
+      # Performing the user's given process.
+      match process:
+        case "exit":
+          exit(0)
+        case "echo":
+          out_text = " ".join(command_split[1:]) + "\n"
+        case "type":
+          out_text, error = type(command[5:])
+        case "pwd":
+          out_text = os.getcwd() + "\n"
+        case "jobs":
+          out_text = jobs(True)
+        case "cd":
+          abspath = command[3:]
+          if abspath == "~":
+            os.chdir(os.path.expanduser("~"))
+          elif os.path.isdir(abspath):
+            os.chdir(abspath)
           else:
-            result = subprocess.run(
-              command_split,
-              stdout=subprocess.PIPE,
-              stderr=subprocess.PIPE,
-              text=True
-            )
-            out_text = result.stdout
-            err_text = result.stderr
-        else:
-          err_text = f"{command}: command not found\n"
+            err_text = f"cd: {abspath}: No such file or directory" + "\n"
+        case "complete":
+          if len(command_split) > 2:
+            if command_split[1] == "-p":
+              if command_split[2] in complete_map:
+                out_text = f"complete -C '{complete_map[command_split[2]]}' {command_split[2]}" + "\n"
+              else:
+                err_text = f"complete: {command_split[2]}: no completion specification" + "\n"
+            elif command_split[1] == "-r" and command_split[2] in complete_map:
+              del complete_map[command_split[2]]
+            elif command_split[1] == "-C" and len(command_split) > 3:
+              complete_map[command_split[3]] = command_split[2]
+        case _:
+          executable, _ = isExecutable(process)
+          if executable:
+            if background:
+              bgprocess = subprocess.Popen(command_split)
+              jobid = max(jobs_map)+1 if jobs_map else 1
+              out_text = f"[{jobid}] {bgprocess.pid}" + "\n"
+              jobs_map[jobid] = (bgprocess, " ".join(command_split))
+            else:
+              result = subprocess.run(
+                command_split,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+              )
+              out_text = result.stdout
+              err_text = result.stderr
+          else:
+            err_text = f"{command}: command not found\n"
 
     # >, 1>, >>, 1>>
     if redirect or append:

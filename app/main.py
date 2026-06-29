@@ -241,167 +241,6 @@ def jobs(called: bool) -> str:
 
   return out_text
 
-# def main() -> None:
-#   """Main parsing logic of Shell
-
-#   This function performs the majority of the required logic. Parses user input,
-#   performs built-in processes when necessary, or executes a given process if found.
-#   Redirects to files when specified by user input.
-
-#   """
-#   readline.set_completer(completer)
-#   readline.parse_and_bind("tab: complete")
-#   readline.set_completion_display_matches_hook(display_matches)
-#   readline.set_completer_delims(' \t\n')
-
-#   while True:
-#     # Print $ and obtain user input.
-#     sys.stdout.write("$ ")
-#     command = input()
-#     if not command:
-#       bg_check = jobs(False)
-#       if bg_check:
-#         sys.stdout.write(bg_check)
-#         sys.stdout.flush()
-#       continue
-#     command_split = shlex.split(command)
-#     process = command_split[0]
-
-#     # Checking if there are requested stdout and stderr redirects to files OR background
-#     redirect = False
-#     redirectErr = False
-#     append = False
-#     appendErr = False
-#     background = False
-#     out_text = ""
-#     err_text = ""
-#     outputFile = ""
-#     if len(command_split) >= 2:
-#       if command_split[-2] in (">", "1>"):
-#         redirect = True
-#         outputFile = command_split[-1]
-#         command_split = command_split[:-2]
-#       elif command_split[-2] == "2>":
-#         redirectErr = True
-#         outputFile = command_split[-1]
-#         command_split = command_split[:-2]
-#       elif command_split[-2] in (">>", "1>>"):
-#         append = True
-#         outputFile = command_split[-1]
-#         command_split = command_split[:-2]
-#       elif command_split[-2] == "2>>":
-#         appendErr = True
-#         outputFile = command_split[-1]
-#         command_split = command_split[:-2]
-#       elif command_split[-1] == "&":
-#         background = True
-#         command_split = command_split[:-1]
-
-#     if "|" in command_split:
-#       pipe_idx = command_split.index("|")
-#       cmd1_tokens = command_split[:pipe_idx]
-#       cmd2_tokens = command_split[pipe_idx + 1:]
-
-#       exe1, _ = isExecutable(cmd1_tokens[0])
-#       exe2, _ = isExecutable(cmd2_tokens[0])
-
-#       if not exe1:
-#         err_text = f"{cmd1_tokens[0]}: command not found\n"
-#       elif not exe2:
-#         err_text = f"{cmd2_tokens[0]}: command not found\n"
-#       else:
-#         p2_target = subprocess.PIPE if (redirect or append) else None
-
-#         p1 = subprocess.Popen(
-#           cmd1_tokens, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-#         )
-#         p2 = subprocess.Popen(
-#           cmd2_tokens, stdin=p1.stdout, stdout=p2_target, stderr=subprocess.PIPE, text=True
-#         )
-
-#         p1.stdout.close()
-
-#         p2_out, err_text = p2.communicate()
-#         out_text = p2_out if p2_out is not None else ""
-
-#         if p1.poll() is None:
-#           p1.terminate()
-#           p1.wait()
-
-#     else:
-#       # Performing the user's given process.
-#       match process:
-#         case "exit":
-#           exit(0)
-#         case "echo":
-#           out_text = " ".join(command_split[1:]) + "\n"
-#         case "type":
-#           out_text, error = type(command[5:])
-#         case "pwd":
-#           out_text = os.getcwd() + "\n"
-#         case "jobs":
-#           out_text = jobs(True)
-#         case "cd":
-#           abspath = command[3:]
-#           if abspath == "~":
-#             os.chdir(os.path.expanduser("~"))
-#           elif os.path.isdir(abspath):
-#             os.chdir(abspath)
-#           else:
-#             err_text = f"cd: {abspath}: No such file or directory" + "\n"
-#         case "complete":
-#           if len(command_split) > 2:
-#             if command_split[1] == "-p":
-#               if command_split[2] in complete_map:
-#                 out_text = f"complete -C '{complete_map[command_split[2]]}' {command_split[2]}" + "\n"
-#               else:
-#                 err_text = f"complete: {command_split[2]}: no completion specification" + "\n"
-#             elif command_split[1] == "-r" and command_split[2] in complete_map:
-#               del complete_map[command_split[2]]
-#             elif command_split[1] == "-C" and len(command_split) > 3:
-#               complete_map[command_split[3]] = command_split[2]
-#         case _:
-#           executable, _ = isExecutable(process)
-#           if executable:
-#             if background:
-#               bgprocess = subprocess.Popen(command_split)
-#               jobid = max(jobs_map)+1 if jobs_map else 1
-#               out_text = f"[{jobid}] {bgprocess.pid}" + "\n"
-#               jobs_map[jobid] = (bgprocess, " ".join(command_split))
-#             else:
-#               result = subprocess.run(
-#                 command_split,
-#                 stdout=subprocess.PIPE,
-#                 stderr=subprocess.PIPE,
-#                 text=True
-#               )
-#               out_text = result.stdout
-#               err_text = result.stderr
-#           else:
-#             err_text = f"{command}: command not found\n"
-
-#     # >, 1>, >>, 1>>
-#     if redirect or append:
-#       mode = "a" if append else "w"
-#       with open(outputFile, mode) as f:
-#         f.write(out_text)
-#     else:
-#       sys.stdout.write(out_text)
-
-#     # 2>, 2>>
-#     if redirectErr or appendErr:
-#       mode = "a" if appendErr else "w"
-#       with open(outputFile, mode) as f:
-#         f.write(err_text)
-#     else:
-#       sys.stderr.write(err_text)
-
-#     bg_check = jobs(False)
-#     if bg_check:
-#       sys.stdout.write(bg_check)
-#       sys.stdout.flush()
-
-
 def run_command(command_split: list[str], command: str = "", stdin_data: str = "", background: bool = False,) -> tuple[str, str]:
   """Executes either a built-in or an external command.
 
@@ -480,6 +319,35 @@ def run_command(command_split: list[str], command: str = "", stdin_data: str = "
 
   return result.stdout, result.stderr
 
+def run_pipeline(pipeline: list[list[str]]) -> tuple[str, str]:
+  stdin_data = ""
+  final_stdout = ""
+  final_stderr = ""
+
+  for stage in pipeline:
+    cmd = stage[0]
+    if cmd in builtin:
+      out, err = run_command(stage, stdin_data=stdin_data)
+      stdin_data = out
+      final_stderr += err
+      continue
+
+    process = subprocess.Popen(
+      stage,
+      stdin=subprocess.PIPE,
+      stdout=subprocess.PIPE,
+      stderr=subprocess.PIPE,
+      text=True
+    )
+
+    out, err = process.communicate(input=stdin_data)
+
+    stdin_data = out
+    final_stderr += err
+
+  final_stdout = stdin_data
+  return final_stdout, final_stderr
+
 def main() -> None:
   readline.set_completer(completer)
   readline.parse_and_bind("tab: complete")
@@ -531,8 +399,8 @@ def main() -> None:
     err_text = ""
 
     if "|" in command_split:
-      pipeline: list[list[str]] = []
-      current: list[str] = []
+      pipeline = []
+      current = []
 
       for token in command_split:
         if token == "|":
@@ -542,16 +410,10 @@ def main() -> None:
         else:
           current.append(token)
 
-      if current:
-        pipeline.append(current)
+        if current:
+          pipeline.append(current)
 
-      stdin = ""
-
-      for stage in pipeline:
-        out_text, err = run_command(stage, stdin_data=stdin)
-        stdin = out_text
-        err_text += err
-
+      out_text, err_text = run_pipeline(pipeline)
     else:
 
       out_text, err_text = run_command(

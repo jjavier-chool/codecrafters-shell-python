@@ -228,7 +228,7 @@ def main() -> None:
   readline.set_completer_delims(' \t\n')
 
   jobcount = 1
-  
+
   while True:
     # Print $ and obtain user input.
     sys.stdout.write("$ ")
@@ -299,7 +299,12 @@ def main() -> None:
             complete_map[command_split[3]] = command_split[2]
       case "jobs":
         for count, (pid, command) in jobs_map.items():
-          out_text += f"[{count}]{'+' if (count == jobcount-1) else ''}  {'Running':<24}{command}" + "\n"
+          schar = ''
+          if count == jobcount-1:
+            schar = '+'
+          elif count == jobcount-2:
+            schar = '-'
+          out_text += f"[{count}]{schar}  {'Running':<24}{command}" + "\n"
       case _:
         executable, _ = isExecutable(process)
         if executable:

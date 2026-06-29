@@ -305,7 +305,7 @@ def main() -> None:
           elif count == jobcount-2:
             schar = '-'
           status = 'Done' if bgprocess.poll() == 0 else 'Running'
-          out_text += f"[{count}]{schar}  {'Running':<24}{command}{' &' if status != 'Done' else ''}" + "\n"
+          out_text += f"[{count}]{schar}  {status:<24}{command}{' &' if status != 'Done' else ''}" + "\n"
       case _:
         executable, _ = isExecutable(process)
         if executable:

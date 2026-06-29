@@ -299,11 +299,14 @@ def main() -> None:
             complete_map[command_split[3]] = command_split[2]
       case "jobs":
         to_delete = []
+        living_ids = sorted(jobs_map.keys())
+        plus_id  = living_ids[-1] if len(living_ids) >= 1 else None
+        minus_id = living_ids[-2] if len(living_ids) >= 2 else None
         for count, (bgprocess, command) in jobs_map.items():
           schar = ''
-          if count == jobcount-1:
+          if count == plus_id:
             schar = '+'
-          elif count == jobcount-2:
+          elif count == minus_id:
             schar = '-'
 
           is_done = bgprocess.poll() is not None

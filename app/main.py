@@ -6,6 +6,7 @@ import os
 
 # Currently defined built-in commands
 builtin = ["pwd", "type", "echo", "exit", "complete"]
+complete_map = {}
 
 def get_completions(prefix: str) -> list[str]:
   """Gather all matching executables
@@ -223,8 +224,14 @@ def main() -> None:
       case "pwd":
         out_text = os.getcwd() + "\n"
       case "complete":
-        if len(command_split) > 2 and command_split[1] == "-p":
-          err_text = f"complete: {command_split[2]}: no completion specification" + "\n"
+        if len(command_split) > 2:
+          if command_split[1] == "-p":
+            if command_split[2] in complete_map:
+              out_text = complete_map[command_split[2]] + "\n"
+            else:
+              err_text = f"complete: {command_split[2]}: no completion specification" + "\n"
+          elif command_split[1] == "-C" and len(command_split) > 3:
+            complete_map[command_split[3]] = f"complete -C '{command_split[2]}' {command_split[3]}"
       case "cd":
         abspath = command[3:]
         if abspath == "~":

@@ -84,29 +84,26 @@ def get_file_completions(prefix: str) -> list[str]:
 
   return sorted(matches)
 
-def get_script_completions(script_path: str, text: str, full_line: str) -> list[str]:
+def get_script_completions(script_path: str, cmd_name: str, current_word: str, prev_word: str) -> list[str]:
   """Executes an external autocomplete script and parses its output lines
 
-  Executes the given script and completes the user's line according to registered completes
+  Executes the given script and completes the user's line according to registered completes.
 
   Args:
-    script_path (str): Path to the executable autocompleter script
-    text (str): The current word prefix being completed
-    full_line (str): The entire string inside the prompt buffer
+    script_path (str): path to the completer script
+    cmd_name (str): argv[1] command name
+    current_word (str): argv[2] current word being completed
+    prev_word (str): argv[3] preceding word (or empty string)
 
   Returns:
     list[str]: list of completion candidates from each line of output
   """
   try:
-    env = os.environ.copy()
-    env["COMP_LINE"] = full_line
-    env["COMP_POINT"] = str(len(full_line))
     result = subprocess.run(
-      [script_path, text],
+      [script_path, cmd_name, current_word, prev_word],
       stdout=subprocess.PIPE,
       stderr=subprocess.PIPE,
-      text=True,
-      env=env
+      text=True
     )
     if result.stdout:
       return sorted(result.stdout.split())
@@ -134,11 +131,16 @@ def completer(text: str, state: int) -> str | None:
   if line.lstrip() == text:
     matches = get_completions(text)
   else:
-    line_tokens = line.split()
-    process = line_tokens[0] if line_tokens else ""
-    if process in complete_map:
-      script = complete_map[process]
-      matches = get_script_completions(script, text, line)
+    # Split text before cursor to get preceding word and command
+    end_idx = readline.get_begidx()
+    text_before_cursor = line[:end_idx]
+    tokens_before = text_before_cursor.split()
+    first_command = tokens_before[0] if tokens_before else ""
+    prev_word = tokens_before[-1] if tokens_before else ""
+
+    if first_command in complete_map:
+      script_file = complete_map[first_command]
+      matches = get_script_completions(script_file, first_command, text, prev_word)
     else:
       matches = get_file_completions(text)
 
@@ -294,6 +296,7 @@ def main() -> None:
         else:
           err_text = f"{command}: command not found\n"
 
+    # >, 1>, >>, 1>>
     if redirect or append:
       mode = "a" if append else "w"
       with open(outputFile, mode) as f:
@@ -301,6 +304,7 @@ def main() -> None:
     else:
       sys.stdout.write(out_text)
 
+    # 2>, 2>>
     if redirectErr or appendErr:
       mode = "a" if appendErr else "w"
       with open(outputFile, mode) as f:

@@ -438,7 +438,36 @@ def main() -> None:
     err_text = ""
 
     if "|" in command_split:
-      out_text, err_text = handle_pipeline(command_split)
+      pipe_idx = command_split.index("|")
+      cmd1_tokens = command_split[:pipe_idx]
+      cmd2_tokens = command_split[pipe_idx + 1:]
+
+      exe1, _ = isExecutable(cmd1_tokens[0])
+      exe2, _ = isExecutable(cmd2_tokens[0])
+
+      if not exe1:
+        err_text = f"{cmd1_tokens[0]}: command not found\n"
+      elif not exe2:
+        err_text = f"{cmd2_tokens[0]}: command not found\n"
+      else:
+        p2_target = subprocess.PIPE if (redirect or append) else None
+
+        p1 = subprocess.Popen(
+          cmd1_tokens, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+        p2 = subprocess.Popen(
+          cmd2_tokens, stdin=p1.stdout, stdout=p2_target, stderr=subprocess.PIPE, text=True
+        )
+
+        p1.stdout.close()
+
+        p2_out, err_text = p2.communicate()
+        out_text = p2_out if p2_out is not None else ""
+
+        if p1.poll() is None:
+          p1.terminate()
+          p1.wait()
+      #out_text, err_text = handle_pipeline(command_split)
     else:
       if command_split[0] in builtin:
         out_text, err_text = run_builtin(command_split)

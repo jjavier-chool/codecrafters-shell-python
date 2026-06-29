@@ -223,7 +223,8 @@ def main() -> None:
       case "pwd":
         out_text = os.getcwd() + "\n"
       case "complete":
-        pass
+        if len(command_split) > 2 and command_split[1] == "-p":
+          err_text = f"complete: {command_split[2]}: no completion specification" + "\n"
       case "cd":
         abspath = command[3:]
         if abspath == "~":

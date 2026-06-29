@@ -321,10 +321,6 @@ def run_command(command_split: list[str], command: str = "", stdin_data: str = "
   return result.stdout, result.stderr
 
 def handle_pipeline(command_split: list[str]) -> tuple[str, str]:
-  """
-  Parses a pipeline into segments and executes them in sequence.
-  Supports builtins + executables correctly.
-  """
   segments: list[list[str]] = []
   current: list[str] = []
 
@@ -339,12 +335,10 @@ def handle_pipeline(command_split: list[str]) -> tuple[str, str]:
   if current:
     segments.append(current)
 
-  stdin_data = ""
-  final_stderr = ""
+  prev_process = None
+  final_err = ""
 
-  for segment in segments:
-    if not segment:
-      continue
+  for i, segment in enumerate(segments):
 
     cmd = segment[0]
 
@@ -352,27 +346,46 @@ def handle_pipeline(command_split: list[str]) -> tuple[str, str]:
       out, err = run_command(
         segment,
         command=" ".join(segment),
-        stdin_data=stdin_data
+        stdin_data=""
       )
 
-      stdin_data = out
-      final_stderr += err
+      # convert builtin output into a PIPE SOURCE for next stage
+      prev_process = out
+      final_err += err
       continue
 
-    process = subprocess.Popen(
-      segment,
-      stdin=subprocess.PIPE,
-      stdout=subprocess.PIPE,
-      stderr=subprocess.PIPE,
-      text=True
-    )
+    if prev_process is None or isinstance(prev_process, str):
+      p1 = subprocess.Popen(
+        segment,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True
+      )
 
-    out, err = process.communicate(input=stdin_data or None)
+      input_data = prev_process if isinstance(prev_process, str) else None
 
-    stdin_data = out
-    final_stderr += err
+      prev_process = p1
+      out, err = p1.communicate(input=input_data)
 
-  return stdin_data, final_stderr
+      prev_process = out
+      final_err += err
+
+    else:
+      p2 = subprocess.Popen(
+        segment,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True
+      )
+
+      out, err = p2.communicate(input=prev_process)
+
+      prev_process = out
+      final_err += err
+
+  return prev_process or "", final_err
 
 def main() -> None:
   readline.set_completer(completer)

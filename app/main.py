@@ -262,6 +262,10 @@ def main() -> None:
     sys.stdout.write("$ ")
     command = input()
     if not command:
+      bg_check = jobs(False)
+      if bg_check:
+        sys.stdout.write(bg_check)
+        sys.stdout.flush()
       continue
     command_split = shlex.split(command)
     process = command_split[0]
@@ -365,7 +369,8 @@ def main() -> None:
 
     bg_check = jobs(False)
     if bg_check:
-      print(bg_check)
+      sys.stdout.write(bg_check)
+      sys.stdout.flush()
 
 
 if __name__ == "__main__":

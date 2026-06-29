@@ -299,23 +299,35 @@ def main() -> None:
         command_split = command_split[:-1]
 
     if "|" in command_split:
-      p2_target = subprocess.PIPE if (redirect or append) else None
+      pipe_idx = command_split.index("|")
+      cmd1_tokens = command_split[:pipe_idx]
+      cmd2_tokens = command_split[pipe_idx + 1:]
 
-      p1 = subprocess.Popen(
-        cmd1_tokens, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-      )
-      p2 = subprocess.Popen(
-        cmd2_tokens, stdin=p1.stdout, stdout=p2_target, stderr=subprocess.PIPE, text=True
-      )
+      exe1, _ = isExecutable(cmd1_tokens[0])
+      exe2, _ = isExecutable(cmd2_tokens[0])
 
-      p1.stdout.close()
+      if not exe1:
+        err_text = f"{cmd1_tokens[0]}: command not found\n"
+      elif not exe2:
+        err_text = f"{cmd2_tokens[0]}: command not found\n"
+      else:
+        p2_target = subprocess.PIPE if (redirect or append) else None
 
-      p2_out, err_text = p2.communicate()
-      out_text = p2_out if p2_out is not None else ""
+        p1 = subprocess.Popen(
+          cmd1_tokens, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+        p2 = subprocess.Popen(
+          cmd2_tokens, stdin=p1.stdout, stdout=p2_target, stderr=subprocess.PIPE, text=True
+        )
 
-      if p1.poll() is None:
-        p1.terminate()
-        p1.wait()
+        p1.stdout.close()
+
+        p2_out, err_text = p2.communicate()
+        out_text = p2_out if p2_out is not None else ""
+
+        if p1.poll() is None:
+          p1.terminate()
+          p1.wait()
 
     else:
       # Performing the user's given process.

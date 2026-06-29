@@ -9,7 +9,7 @@ builtin = ["pwd", "type", "echo", "exit", "complete", "jobs"]
 # User's registered complete scripts
 complete_map: dict[str, str] = {}
 # Current background jobs
-jobs_map: dict[int, (int, str)] = {}
+jobs_map: dict[int, (subprocess.Popen, str)] = {}
 
 def get_completions(prefix: str) -> list[str]:
   """Gather all matching executables
@@ -298,20 +298,21 @@ def main() -> None:
           elif command_split[1] == "-C" and len(command_split) > 3:
             complete_map[command_split[3]] = command_split[2]
       case "jobs":
-        for count, (pid, command) in jobs_map.items():
+        for count, (bgprocess, command) in jobs_map.items():
           schar = ''
           if count == jobcount-1:
             schar = '+'
           elif count == jobcount-2:
             schar = '-'
-          out_text += f"[{count}]{schar}  {'Running':<24}{command}" + "\n"
+          status = 'Done' if bgprocess.poll() == 0 else 'Running'
+          out_text += f"[{count}]{schar}  {'Running':<24}{command}{' &' if status != 'Done' else ''}" + "\n"
       case _:
         executable, _ = isExecutable(process)
         if executable:
           if background:
             bgprocess = subprocess.Popen(command_split)
             out_text = f"[{jobcount}] {bgprocess.pid}" + "\n"
-            jobs_map[jobcount] = (bgprocess.pid, " ".join(command_split) + " &")
+            jobs_map[jobcount] = (bgprocess, " ".join(command_split))
             jobcount += 1
           else:
             result = subprocess.run(

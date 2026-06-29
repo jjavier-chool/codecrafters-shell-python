@@ -227,11 +227,11 @@ def main() -> None:
         if len(command_split) > 2:
           if command_split[1] == "-p":
             if command_split[2] in complete_map:
-              out_text = complete_map[command_split[2]] + "\n"
+              out_text = f"complete -C '{complete_map[command_split[2]]}' {command_split[2]}" + "\n"
             else:
               err_text = f"complete: {command_split[2]}: no completion specification" + "\n"
           elif command_split[1] == "-C" and len(command_split) > 3:
-            complete_map[command_split[3]] = f"complete -C '{command_split[2]}' {command_split[3]}"
+            complete_map[command_split[3]] = command_split[2]
       case "cd":
         abspath = command[3:]
         if abspath == "~":
@@ -242,6 +242,8 @@ def main() -> None:
           # Naive error: no specific message given for non-directory
           err_text = f"cd: {abspath}: No such file or directory" + "\n"
       case _:
+        if process in complete_map:
+          process = complete_map[process]
         executable, _ = isExecutable(process)
         if executable:
           result = subprocess.run(

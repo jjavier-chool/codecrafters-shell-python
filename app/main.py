@@ -570,7 +570,7 @@ def main() -> None:
       with open(outputFile, mode) as f:
         f.write(err_text)
     else:
-        ys.stderr.write(err_text)
+        sys.stderr.write(err_text)
 
     bg = jobs(False)
     if bg:

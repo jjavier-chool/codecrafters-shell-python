@@ -442,42 +442,49 @@ def main() -> None:
       cmd1 = command_split[:pipe_idx]
       cmd2 = command_split[pipe_idx + 1:]
 
-      out_text = ""
-      err_text = ""
-
       if cmd1[0] in builtin:
+        # Built-in is a pure function. Run it, capture output.
         p1_out, p1_err = run_builtin(cmd1)
-        p1_stdout_stream = subprocess.PIPE 
-        p1_input_data = p1_out
+        # This is now just a string variable
+        producer_data = p1_out
         p1_proc = None
       else:
         p1_proc = subprocess.Popen(
           cmd1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
-        p1_stdout_stream = p1_proc.stdout
-        p1_input_data = None
+        # We don't read yet. We let it live in the OS pipe.
+        producer_data = None 
         p1_err = ""
 
       if cmd2[0] in builtin:
+        # If the producer was external, we must finish it to get the string.
         if p1_proc:
           p1_out, p1_err = p1_proc.communicate()
-            
-          out_text, err_text = run_builtin(cmd2)
+          producer_data = p1_out
+        
+        out_text, err_text = run_builtin(cmd2)
       else:
-        p2_proc = subprocess.Popen(
-          cmd2, stdin=p1_stdout_stream, stdout=subprocess.PIPE, 
-          stderr=subprocess.PIPE, text=True
-        )
-            
-        if p1_stdout_stream:
-          p1_stdout_stream.close()
-            
-        p2_out, p2_err = p2_proc.communicate(input=p1_input_data)
-        out_text, err_text = p2_out, p1_err + p2_err
+        # External: Connect it to the stream.
+          if p1_proc:
+            # Producer is an external process
+            p2_proc = subprocess.Popen(
+              cmd2, stdin=p1_proc.stdout, stdout=subprocess.PIPE, 
+              stderr=subprocess.PIPE, text=True
+            )
+            p1_proc.stdout.close()
+            out_text, err_text = p2_proc.communicate()
+          else:
+            # Producer was a built-in (string data)
+            p2_proc = subprocess.Popen(
+              cmd2, stdin=subprocess.PIPE, stdout=subprocess.PIPE, 
+              stderr=subprocess.PIPE, text=True
+            )
+            out_text, err_text = p2_proc.communicate(input=producer_data)
 
       if p1_proc and p1_proc.poll() is None:
         p1_proc.terminate()
         p1_proc.wait()
+
     else:
       if command_split[0] in builtin:
         out_text, err_text = run_builtin(command_split)

@@ -439,35 +439,45 @@ def main() -> None:
 
     if "|" in command_split:
       pipe_idx = command_split.index("|")
-      cmd1_tokens = command_split[:pipe_idx]
-      cmd2_tokens = command_split[pipe_idx + 1:]
+      cmd1 = command_split[:pipe_idx]
+      cmd2 = command_split[pipe_idx + 1:]
 
-      exe1, _ = isExecutable(cmd1_tokens[0])
-      exe2, _ = isExecutable(cmd2_tokens[0])
+      out_text = ""
+      err_text = ""
 
-      if not exe1:
-        err_text = f"{cmd1_tokens[0]}: command not found\n"
-      elif not exe2:
-        err_text = f"{cmd2_tokens[0]}: command not found\n"
+      if cmd1[0] in builtin:
+        p1_out, p1_err = run_builtin(cmd1)
+        p1_stdout_stream = subprocess.PIPE 
+        p1_input_data = p1_out
+        p1_proc = None
       else:
-        p2_target = subprocess.PIPE if (redirect or append) else None
-
-        p1 = subprocess.Popen(
-          cmd1_tokens, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        p1_proc = subprocess.Popen(
+          cmd1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
-        p2 = subprocess.Popen(
-          cmd2_tokens, stdin=p1.stdout, stdout=p2_target, stderr=subprocess.PIPE, text=True
+        p1_stdout_stream = p1_proc.stdout
+        p1_input_data = None
+        p1_err = ""
+
+      if cmd2[0] in builtin:
+        if p1_proc:
+          p1_out, p1_err = p1_proc.communicate()
+            
+          out_text, err_text = run_builtin(cmd2)
+      else:
+        p2_proc = subprocess.Popen(
+          cmd2, stdin=p1_stdout_stream, stdout=subprocess.PIPE, 
+          stderr=subprocess.PIPE, text=True
         )
+            
+        if p1_stdout_stream:
+          p1_stdout_stream.close()
+            
+        p2_out, p2_err = p2_proc.communicate(input=p1_input_data)
+        out_text, err_text = p2_out, p1_err + p2_err
 
-        p1.stdout.close()
-
-        p2_out, err_text = p2.communicate()
-        out_text = p2_out if p2_out is not None else ""
-
-        if p1.poll() is None:
-          p1.terminate()
-          p1.wait()
-      #out_text, err_text = handle_pipeline(command_split)
+      if p1_proc and p1_proc.poll() is None:
+        p1_proc.terminate()
+        p1_proc.wait()
     else:
       if command_split[0] in builtin:
         out_text, err_text = run_builtin(command_split)

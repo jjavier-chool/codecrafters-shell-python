@@ -1,11 +1,12 @@
 import subprocess
 import readline
-import shlex # This library is basically like cheating for the quoting challenges. Want to try writing it myself later
+import shlex
 import sys
 import os
 
 # Currently defined built-in commands
 builtin = ["pwd", "type", "echo", "exit", "complete"]
+# User's registered complete scripts
 complete_map: dict[str, str] = {}
 
 def get_completions(prefix: str) -> list[str]:
@@ -269,15 +270,6 @@ def main() -> None:
         out_text, error = type(command[5:])
       case "pwd":
         out_text = os.getcwd() + "\n"
-      case "complete":
-        if len(command_split) > 2:
-          if command_split[1] == "-p":
-            if command_split[2] in complete_map:
-              out_text = f"complete -C '{complete_map[command_split[2]]}' {command_split[2]}" + "\n"
-            else:
-              err_text = f"complete: {command_split[2]}: no completion specification" + "\n"
-          elif command_split[1] == "-C" and len(command_split) > 3:
-            complete_map[command_split[3]] = command_split[2]
       case "cd":
         abspath = command[3:]
         if abspath == "~":
@@ -287,6 +279,17 @@ def main() -> None:
         else:
           # Naive error: no specific message given for non-directory
           err_text = f"cd: {abspath}: No such file or directory" + "\n"
+      case "complete":
+        if len(command_split) > 2:
+          if command_split[1] == "-p":
+            if command_split[2] in complete_map:
+              out_text = f"complete -C '{complete_map[command_split[2]]}' {command_split[2]}" + "\n"
+            else:
+              err_text = f"complete: {command_split[2]}: no completion specification" + "\n"
+          elif command_split[1] == "-r" and command_split[2] in complete_map:
+            del complete_map[command_split[2]]
+          elif command_split[1] == "-C" and len(command_split) > 3:
+            complete_map[command_split[3]] = command_split[2]
       case _:
         executable, _ = isExecutable(process)
         if executable:

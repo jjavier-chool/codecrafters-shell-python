@@ -9,7 +9,7 @@ builtin = ["pwd", "type", "echo", "exit", "complete", "jobs"]
 # User's registered complete scripts
 complete_map: dict[str, str] = {}
 # Current background jobs
-job_map: dict[int, (int, str)] = {}
+jobs_map: dict[int, (int, str)] = {}
 
 def get_completions(prefix: str) -> list[str]:
   """Gather all matching executables

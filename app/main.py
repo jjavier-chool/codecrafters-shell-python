@@ -15,8 +15,6 @@ jobs_map: dict[int, (subprocess.Popen, str)] = {}
 def get_completions(prefix: str) -> list[str]:
   """Gather all matching executables
 
-  Build a sorted list of all executables with a matching prefix, path & built-in
-
   Args:
       prefix (str): the user's inputted string to complete
 
@@ -58,13 +56,15 @@ def get_completions(prefix: str) -> list[str]:
 def get_file_completions(prefix: str) -> list[str]:
   """Gather all matching files and directories
 
-  Build a sorted list of all files/directories with a matching prefix
-
   Args:
     prefix (str): The user's inputted filepath string
 
   Returns:
     list[str]: The sorted list of matching files/directories
+  
+  Exception:
+    PermissionError: not allowed to read file/directory
+    FileNotFoundError: file/directory DNE
   """
   # Split the prefix into directory and the partial filename
   # e.g., "src/ma" -> dir_name="src", base_name="ma"
@@ -91,8 +91,6 @@ def get_file_completions(prefix: str) -> list[str]:
 def get_script_completions(script_path: str, cmd_name: str, current_word: str, prev_word: str, full_line: str) -> list[str]:
   """Executes an external autocomplete script and parses its output lines
 
-  Executes the given script and completes the user's line according to registered completes.
-
   Args:
     script_path (str): path to the completer script
     cmd_name (str): argv[1] command name
@@ -102,6 +100,9 @@ def get_script_completions(script_path: str, cmd_name: str, current_word: str, p
 
   Returns:
     list[str]: list of completion candidates from each line of output
+  
+  Exception:
+    pass any exceptions
   """
   try:
     env = os.environ.copy()
@@ -124,8 +125,6 @@ def get_script_completions(script_path: str, cmd_name: str, current_word: str, p
 
 def completer(text: str, state: int) -> str | None:
   """Tab autocompletion
-
-  This function finds a matching built-in command according to the given prefix and state.
 
   Args:
     text (str): The given user text.
@@ -164,8 +163,6 @@ def completer(text: str, state: int) -> str | None:
 def display_matches(substitution: str, matches: list[str], longest_match_len: int) -> None:
   """Print list of matches
 
-  Prints the found list of command matches to the terminal.
-
   Args:
       substitution (str): longest common prefix that all matches share
       matches (list[str]): the list of matched commands to the user's prefix
@@ -179,8 +176,6 @@ def display_matches(substitution: str, matches: list[str], longest_match_len: in
 
 def isExecutable(command: str) -> tuple[bool, str]:
   """Determines whether a given command is executable
-
-  This function searches for an executable file with the given name.
 
   Args:
     command (str): The given command to investigate.
@@ -197,8 +192,6 @@ def isExecutable(command: str) -> tuple[bool, str]:
 def shell_type(command: str) -> tuple[str, bool]:
   """Type built-in
 
-  This function determines the type of the given command: builtin, executable, or not found.
-
   Args:
     command (str): The command requested by the user
 
@@ -214,6 +207,14 @@ def shell_type(command: str) -> tuple[str, bool]:
     return f"{command}: not found" + "\n", True
 
 def jobs(called: bool) -> str:
+  """Jobs built-in
+
+  Args:
+    called (bool): Whether being called at the end of the loop or by user
+
+  Returns:
+    str: the full jobs report
+  """
   out_text = ""
   to_delete = []
   living_ids = sorted(jobs_map.keys())
@@ -251,7 +252,7 @@ def run_command(command_split: list[str], command: str = "", stdin_data: str = "
     background: Whether to execute in the background
 
   Returns:
-    (stdout, stderr)
+    tuple[str, str]: (stdout, stderr) strings
     """
   if not command_split or not command_split[0]:
     return "", ""
@@ -319,33 +320,35 @@ def run_command(command_split: list[str], command: str = "", stdin_data: str = "
 
   return result.stdout, result.stderr
 
-def run_pipeline(pipeline: list[list[str]]) -> tuple[str, str]:
-  stdin_data = ""
+def handle_pipeline(command_split: list[str]) -> tuple[str, str]:
+  """
+  Parses a pipeline into segments and executes them in sequence.
+  """
+  # Split the list of tokens by the pipe character
+  segments: list[list[str]] = []
+  current_segment: list[str] = []
+    
+  for token in command_split:
+    if token == "|":
+      segments.append(current_segment)
+      current_segment = []
+    else:
+      current_segment.append(token)
+  segments.append(current_segment)
+
+  # Chain the commands
   final_stdout = ""
   final_stderr = ""
-
-  for stage in pipeline:
-    cmd = stage[0]
-    if cmd in builtin:
-      out, err = run_command(stage, stdin_data=stdin_data)
-      stdin_data = out
-      final_stderr += err
-      continue
-
-    process = subprocess.Popen(
-      stage,
-      stdin=subprocess.PIPE,
-      stdout=subprocess.PIPE,
-      stderr=subprocess.PIPE,
-      text=True
-    )
-
-    out, err = process.communicate(input=stdin_data or None)
-
-    stdin_data = out
+    
+  # We pipe the output of one segment into the input of the next
+  input_data = ""
+    
+  for segment in segments:
+    out, err = run_command(segment, " ".join(segment), stdin_data=input_data)
+    final_stdout = out
     final_stderr += err
-
-  final_stdout = stdin_data
+    input_data = out # The output of this stage is the input for the next
+        
   return final_stdout, final_stderr
 
 def main() -> None:

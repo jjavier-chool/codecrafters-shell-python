@@ -243,9 +243,17 @@ def main() -> None:
           err_text = f"cd: {abspath}: No such file or directory" + "\n"
       case _:
         if process in complete_map:
+          name = process
           process = complete_map[process]
         executable, _ = isExecutable(process)
-        if executable:
+        if executable and name in complete_map:
+          result = subprocess.run(
+            process,
+            stdout=subprocess.PIPE
+            text=True
+          )
+          out_text = f"{name} {result.stdout}" + "\n"
+        elif executable:
           result = subprocess.run(
             command_split,
             stdout=subprocess.PIPE,
@@ -264,7 +272,6 @@ def main() -> None:
     else:
       sys.stdout.write(out_text)
 
-    # 2. Route Standard Error
     if redirectErr or appendErr:
       mode = "a" if appendErr else "w"
       with open(outputFile, mode) as f:

@@ -402,23 +402,8 @@ def main() -> None:
     err_text = ""
 
     if "|" in command_split:
-      pipeline = []
-      current = []
-
-      for token in command_split:
-        if token == "|":
-          if current:
-            pipeline.append(current)
-          current = []
-        else:
-          current.append(token)
-
-        if current:
-          pipeline.append(current)
-
-      out_text, err_text = run_pipeline(pipeline)
+      out_text, err_text = handle_pipeline(command_split)
     else:
-
       out_text, err_text = run_command(
         command_split,
         command=command,

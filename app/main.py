@@ -266,10 +266,6 @@ def main() -> None:
     command_split = shlex.split(command)
     process = command_split[0]
 
-    bg_check = jobs(False)
-    if bg_check:
-      print(bg_check)
-
     # Checking if there are requested stdout and stderr redirects to files OR background
     redirect = False
     redirectErr = False
@@ -366,6 +362,10 @@ def main() -> None:
         f.write(err_text)
     else:
       sys.stderr.write(err_text)
+
+    bg_check = jobs(False)
+    if bg_check:
+      print(bg_check)
 
 
 if __name__ == "__main__":

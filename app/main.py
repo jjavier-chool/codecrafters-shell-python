@@ -227,6 +227,8 @@ def main() -> None:
   readline.set_completion_display_matches_hook(display_matches)
   readline.set_completer_delims(' \t\n')
 
+  jobcount = 1
+  
   while True:
     # Print $ and obtain user input.
     sys.stdout.write("$ ")
@@ -245,7 +247,6 @@ def main() -> None:
     out_text = ""
     err_text = ""
     outputFile = ""
-    jobcount = 1
     if len(command_split) >= 2:
       if command_split[-2] in (">", "1>"):
         redirect = True

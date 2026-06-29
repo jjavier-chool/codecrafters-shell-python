@@ -406,14 +406,15 @@ def run_command(command_split: list[str], command: str = "", stdin_data: str = "
   """Executes either a built-in or an external command.
 
   Args:
-    tokens: Command and arguments.
-    stdin_data: Data to provide on stdin (used by pipelines).
-    background: Whether to execute in the background.
+    command_split: Command and arguments
+    command: raw user input
+    stdin_data: Data to provide on stdin (used by pipelines)
+    background: Whether to execute in the background
 
   Returns:
     (stdout, stderr)
     """
-  if not tokens:
+  if not command_split:
     return "", ""
 
   process = command_split[0]
@@ -465,12 +466,12 @@ def run_command(command_split: list[str], command: str = "", stdin_data: str = "
   if background:
     bgprocess = subprocess.Popen(command_split)
     jobid = max(jobs_map) + 1 if jobs_map else 1
-    jobs_map[jobid] = (bgprocess, " ".join(tokens))
+    jobs_map[jobid] = (bgprocess, " ".join(command_split))
 
     return f"[{jobid}] {bgprocess.pid}\n", ""
 
   result = subprocess.run(
-    tokens,
+    command_split,
     input=stdin_data,
     stdout=subprocess.PIPE,
     stderr=subprocess.PIPE,

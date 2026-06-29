@@ -414,7 +414,7 @@ def run_command(command_split: list[str], command: str = "", stdin_data: str = "
   Returns:
     (stdout, stderr)
     """
-  if not command_split:
+  if not command_split or not command_split[0]:
     return "", ""
 
   process = command_split[0]
@@ -427,7 +427,7 @@ def run_command(command_split: list[str], command: str = "", stdin_data: str = "
       case "echo":
         return " ".join(command_split[1:]) + "\n", ""
       case "type":
-        out_text, error = shell_type(command[5:])
+        out_text, error = shell_type(" ".join(command_split[1:]))
         if error:
           return "", out_text
         else:
@@ -536,12 +536,14 @@ def main() -> None:
 
       for token in command_split:
         if token == "|":
-          pipeline.append(current)
+          if current:
+            pipeline.append(current)
           current = []
         else:
           current.append(token)
 
-      pipeline.append(current)
+      if current:
+        pipeline.append(current)
 
       stdin = ""
 

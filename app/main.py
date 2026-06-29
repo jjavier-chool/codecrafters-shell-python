@@ -321,8 +321,8 @@ def main() -> None:
       case "jobs":
         for count, (pid, command) in jobs_map.items():
           #check if first somehow here
-          status = job_status(pid) #handling here for terminated/completed prob
-          out_text += f"[{count}]+  {status:<24}{command}" + "\n"
+          #status = job_status(pid) #handling here for terminated/completed prob
+          out_text += f"[{count}]{'+' if count == jobcount-1 else ''}  {'Running':<24}{command}" + "\n"
       case _:
         executable, _ = isExecutable(process)
         if executable:

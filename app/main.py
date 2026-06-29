@@ -340,7 +340,7 @@ def run_pipeline(pipeline: list[list[str]]) -> tuple[str, str]:
       text=True
     )
 
-    out, err = process.communicate(input=stdin_data)
+    out, err = process.communicate(input=stdin_data or None)
 
     stdin_data = out
     final_stderr += err

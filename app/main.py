@@ -392,12 +392,14 @@ def main() -> None:
           current_segment.append(token)
       segments.append(current_segment)
 
-      # Track background processes to clean them up and avoid deadlocks
+      # 2. Track background processes to clean them up and avoid deadlocks
       processes = []
       prev_stdout = None
       in_memory_data = None
+      out_text = ""
+      err_text = ""
 
-      # 2. Iterate through each segment in the pipeline chain
+      # 3. Iterate through each segment in the pipeline chain
       for i, segment in enumerate(segments):
         is_last = (i == len(segments) - 1)
         cmd_name = segment[0]
@@ -410,21 +412,23 @@ def main() -> None:
           # --- CASE A: Built-in Command ---
           # If the previous command was an external process, we must drain it to memory first
           if prev_stdout and not in_memory_data:
-            # Find the process that owns this pipe stream to communicate with it
             for p in reversed(processes):
               if p.stdout == prev_stdout:
                 in_memory_data, _ = p.communicate()
                 break
           
-          # Run the built-in (using your existing run_builtin signature)
+          # Run the built-in
           bi_out, bi_err = run_builtin(segment)
           
-          if err_text == "" and bi_err:
-            err_text = bi_err
+          if bi_err:
+            err_text += bi_err
             
-          # The output of this built-in becomes the input data for the next segment
           in_memory_data = bi_out
           prev_stdout = None
+          
+          if is_last:
+            out_text = in_memory_data
+
         else:
           # --- CASE B: External Command ---
           if in_memory_data is not None:
@@ -438,8 +442,6 @@ def main() -> None:
               out_text = p_out if p_out else ""
               err_text += p_err if p_err else ""
             else:
-              # If it's an intermediate stage, we must communicate to push data through
-              # but keep its stdout tracking for the next iteration step
               p_out, p_err = p.communicate(input=in_memory_data)
               in_memory_data = p_out
               err_text += p_err if p_err else ""
@@ -462,31 +464,12 @@ def main() -> None:
               out_text = p_out if p_out else ""
               err_text += p_err if p_err else ""
 
-      # 3. Process Cleanup & Subshell Waiting 
+      # 4. Process Cleanup & Subshell Waiting 
       # Terminate any lingering asynchronous processes up the chain (like tail -f)
       for p in processes:
         if p.poll() is None:
           p.terminate()
           p.wait()
-      else:
-        if p1_proc:
-          p2_proc = subprocess.Popen(
-            cmd2, stdin=p1_proc.stdout, stdout=p2_target, stderr=subprocess.PIPE, text=True
-          )
-          p1_proc.stdout.close()
-          p2_out, p2_err = p2_proc.communicate()
-        else:
-          p2_proc = subprocess.Popen(
-            cmd2, stdin=subprocess.PIPE, stdout=p2_target, stderr=subprocess.PIPE, text=True
-          )
-          p2_out, p2_err = p2_proc.communicate(input=producer_data)
-
-        out_text = p2_out if p2_out else ""
-        err_text = p2_err if p2_err else ""
-
-      if p1_proc and p1_proc.poll() is None:
-        p1_proc.terminate()
-        p1_proc.wait()
 
     else:
       if command_split[0] in builtin:

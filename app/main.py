@@ -243,9 +243,14 @@ def jobs(called: bool) -> str:
   return out_text
 
 def run_builtin(command_split: list[str]) -> tuple[str, str]:
-  """
+  """Executes a built-in command.
 
-  """
+  Args:
+    command_split (list[str]): Command and arguments
+
+  Returns:
+    tuple[str, str]: (stdout, stderr) strings
+    """
   if not command_split or not command_split[0]:
     return "", ""
 
@@ -291,9 +296,9 @@ def run_command(command_split: list[str], stdin_data: str = "", background: bool
   """Executes an external command.
 
   Args:
-    command_split: Command and arguments
-    stdin_data: Data to provide on stdin (used by pipelines)
-    background: Whether to execute in the background
+    command_split (list[str]): Command and arguments
+    stdin_data (str): Data to provide on stdin (used by pipelines)
+    background (bool): Whether to execute in the background
 
   Returns:
     tuple[str, str]: (stdout, stderr) strings
@@ -324,68 +329,6 @@ def run_command(command_split: list[str], stdin_data: str = "", background: bool
   )
 
   return result.stdout, result.stderr
-
-def handle_pipeline(command_split: list[str]) -> tuple[str, str]:
-  segments: list[list[str]] = []
-  current: list[str] = []
-
-  for token in command_split:
-    if token == "|":
-      if current:
-        segments.append(current)
-      current = []
-    else:
-      current.append(token)
-
-  if current:
-    segments.append(current)
-
-  prev_process = None
-  final_err = ""
-
-  for i, segment in enumerate(segments):
-
-    cmd = segment[0]
-
-    if cmd in builtin:
-      out, err = run_builtin(segment)
-
-      prev_process = out
-      final_err += err
-      continue
-
-    if prev_process is None or isinstance(prev_process, str):
-      p1 = subprocess.Popen(
-        segment,
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
-      )
-
-      input_data = prev_process if isinstance(prev_process, str) else None
-
-      prev_process = p1
-      out, err = p1.communicate(input=input_data)
-
-      prev_process = out
-      final_err += err
-
-    else:
-      p2 = subprocess.Popen(
-        segment,
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
-      )
-
-      out, err = p2.communicate(input=prev_process)
-
-      prev_process = out
-      final_err += err
-
-  return prev_process or "", final_err
 
 def main() -> None:
   readline.set_completer(completer)
@@ -439,51 +382,41 @@ def main() -> None:
 
     if "|" in command_split:
       pipe_idx = command_split.index("|")
-      cmd1 = command_split[:pipe_idx]
-      cmd2 = command_split[pipe_idx + 1:]
+      cmd1_tokens = command_split[:pipe_idx]
+      cmd2_tokens = command_split[pipe_idx + 1:]
 
-      if cmd1[0] in builtin:
-        # Built-in is a pure function. Run it, capture output.
-        p1_out, p1_err = run_builtin(cmd1)
-        # This is now just a string variable
-        producer_data = p1_out
-        p1_proc = None
+      if cmd1_tokens[0] in builtin:
+        out1, err1 = run_builtin(cmd1_tokens)
+        print(out1)
+      if cmd2_tokens[0] in builtin:
+        out2, err2 = run_builtin(cmd2_tokens)
+        print(out2)
+
+      exe1, _ = isExecutable(cmd1_tokens[0])
+      exe2, _ = isExecutable(cmd2_tokens[0])
+
+      if not exe1:
+        err_text = f"{cmd1_tokens[0]}: command not found\n"
+      elif not exe2:
+        err_text = f"{cmd2_tokens[0]}: command not found\n"
       else:
-        p1_proc = subprocess.Popen(
-          cmd1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        p2_target = subprocess.PIPE if (redirect or append) else None
+
+        p1 = subprocess.Popen(
+          cmd1_tokens, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
-        # We don't read yet. We let it live in the OS pipe.
-        producer_data = None 
-        p1_err = ""
+        p2 = subprocess.Popen(
+          cmd2_tokens, stdin=p1.stdout, stdout=p2_target, stderr=subprocess.PIPE, text=True
+        )
 
-      if cmd2[0] in builtin:
-        # If the producer was external, we must finish it to get the string.
-        if p1_proc:
-          p1_out, p1_err = p1_proc.communicate()
-          producer_data = p1_out
-        
-        out_text, err_text = run_builtin(cmd2)
-      else:
-        # External: Connect it to the stream.
-          if p1_proc:
-            # Producer is an external process
-            p2_proc = subprocess.Popen(
-              cmd2, stdin=p1_proc.stdout, stdout=subprocess.PIPE, 
-              stderr=subprocess.PIPE, text=True
-            )
-            p1_proc.stdout.close()
-            out_text, err_text = p2_proc.communicate()
-          else:
-            # Producer was a built-in (string data)
-            p2_proc = subprocess.Popen(
-              cmd2, stdin=subprocess.PIPE, stdout=subprocess.PIPE, 
-              stderr=subprocess.PIPE, text=True
-            )
-            out_text, err_text = p2_proc.communicate(input=producer_data)
+        p1.stdout.close()
 
-      if p1_proc and p1_proc.poll() is None:
-        p1_proc.terminate()
-        p1_proc.wait()
+        p2_out, err_text = p2.communicate()
+        out_text = p2_out if p2_out is not None else ""
+
+        if p1.poll() is None:
+          p1.terminate()
+          p1.wait()
 
     else:
       if command_split[0] in builtin:

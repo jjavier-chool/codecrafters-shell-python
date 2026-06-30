@@ -385,36 +385,41 @@ def main() -> None:
       cmd1_tokens = command_split[:pipe_idx]
       cmd2_tokens = command_split[pipe_idx + 1:]
 
-      if cmd1_tokens[0] in builtin:
-        out1, err1 = run_builtin(cmd1_tokens)
-        print(out1)
-      if cmd2_tokens[0] in builtin:
-        out2, err2 = run_builtin(cmd2_tokens)
-        print(out2)
-
       exe1, _ = isExecutable(cmd1_tokens[0])
       exe2, _ = isExecutable(cmd2_tokens[0])
+      out1 = ""
+      p1 = None
+      p2 = None
 
-      if not exe1:
+      if not exe1 and cmd1_tokens[0] not in builtin:
         err_text = f"{cmd1_tokens[0]}: command not found\n"
-      elif not exe2:
+      elif not exe2 and cmd2_tokens[0] not in builtin:
         err_text = f"{cmd2_tokens[0]}: command not found\n"
       else:
         p2_target = subprocess.PIPE if (redirect or append) else None
 
-        p1 = subprocess.Popen(
-          cmd1_tokens, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-        )
-        p2 = subprocess.Popen(
-          cmd2_tokens, stdin=p1.stdout, stdout=p2_target, stderr=subprocess.PIPE, text=True
-        )
+        if cmd1_tokens[0] not in builtin:
+          p1 = subprocess.Popen(
+            cmd1_tokens, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+          )
+        else:
+          out1, err1 = run_builtin(cmd1_tokens)
+        
+        if cmd2_tokens[0] not in builtin:
+          out_text, err_text = run_builtin(cmd1_tokens)
+        else:
+          p2 = subprocess.Popen(
+            cmd2_tokens, stdin=out1 if out1 else p1.stdout, stdout=p2_target, stderr=subprocess.PIPE, text=True
+          )
 
-        p1.stdout.close()
+        if p1: 
+          p1.stdout.close()
 
-        p2_out, err_text = p2.communicate()
-        out_text = p2_out if p2_out is not None else ""
+        if p2:
+          p2_out, err_text = p2.communicate()
+          out_text = p2_out if p2_out is not None else ""
 
-        if p1.poll() is None:
+        if p1 and p1.poll() is None:
           p1.terminate()
           p1.wait()
 

@@ -381,34 +381,93 @@ def main() -> None:
     err_text = ""
 
     if "|" in command_split:
-      pipe_idx = command_split.index("|")
-      cmd1 = command_split[:pipe_idx]
-      cmd2 = command_split[pipe_idx + 1:]
+      # 1. Parse command_split into N separate segments
+      segments = []
+      current_segment = []
+      for token in command_split:
+        if token == "|":
+          segments.append(current_segment)
+          current_segment = []
+        else:
+          current_segment.append(token)
+      segments.append(current_segment)
 
-      p1_proc = None
-      producer_data = None
+      # Track background processes to clean them up and avoid deadlocks
+      processes = []
+      prev_stdout = None
+      in_memory_data = None
 
-      if cmd1[0] in builtin:
-        # Run built-in, capture its output string
-        p1_out, p1_err = run_builtin(cmd1)
-        producer_data = p1_out
-      else:
-        # Spawn external, capture the pipe but do NOT wait for it
-        p1_proc = subprocess.Popen(
-          cmd1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-        )
+      # 2. Iterate through each segment in the pipeline chain
+      for i, segment in enumerate(segments):
+        is_last = (i == len(segments) - 1)
+        cmd_name = segment[0]
 
-      # If redirecting, we must capture p2's output. Otherwise, stream direct to terminal.
-      p2_target = subprocess.PIPE if (redirect or append) else None
+        # Determine where the final command should send its output
+        p2_target = subprocess.PIPE if (redirect or append) else None
+        stdout_dest = p2_target if is_last else subprocess.PIPE
 
-      if cmd2[0] in builtin:
-        # If cmd1 was external, drain it first so it doesn't hang
-        if p1_proc:
-          producer_data, _ = p1_proc.communicate()
+        if cmd_name in builtin:
+          # --- CASE A: Built-in Command ---
+          # If the previous command was an external process, we must drain it to memory first
+          if prev_stdout and not in_memory_data:
+            # Find the process that owns this pipe stream to communicate with it
+            for p in reversed(processes):
+              if p.stdout == prev_stdout:
+                in_memory_data, _ = p.communicate()
+                break
+          
+          # Run the built-in (using your existing run_builtin signature)
+          bi_out, bi_err = run_builtin(segment)
+          
+          if err_text == "" and bi_err:
+            err_text = bi_err
+            
+          # The output of this built-in becomes the input data for the next segment
+          in_memory_data = bi_out
+          prev_stdout = None
+        else:
+          # --- CASE B: External Command ---
+          if in_memory_data is not None:
+            # The previous command was a built-in or drained process; feed it via stdin=PIPE
+            p = subprocess.Popen(
+              segment, stdin=subprocess.PIPE, stdout=stdout_dest, stderr=subprocess.PIPE, text=True
+            )
+            # Instantly inject the in-memory string data into this process and capture output
+            if is_last:
+              p_out, p_err = p.communicate(input=in_memory_data)
+              out_text = p_out if p_out else ""
+              err_text += p_err if p_err else ""
+            else:
+              # If it's an intermediate stage, we must communicate to push data through
+              # but keep its stdout tracking for the next iteration step
+              p_out, p_err = p.communicate(input=in_memory_data)
+              in_memory_data = p_out
+              err_text += p_err if p_err else ""
+              prev_stdout = None
+          else:
+            # Pure external streaming connection (Crucial for deadlock-free tail/head operations)
+            p = subprocess.Popen(
+              segment, stdin=prev_stdout, stdout=stdout_dest, stderr=subprocess.PIPE, text=True
+            )
+            
+            # Close parent's copy of the read pipe handle so EOF propagates natively down the chain
+            if prev_stdout:
+              prev_stdout.close()
+              
+            processes.append(p)
+            prev_stdout = p.stdout
+            
+            if is_last:
+              p_out, p_err = p.communicate()
+              out_text = p_out if p_out else ""
+              err_text += p_err if p_err else ""
 
-        p2_out, p2_err = run_builtin(cmd2)
-        out_text = p2_out
-        err_text = p2_err
+      # 3. Process Cleanup & Subshell Waiting 
+      # Terminate any lingering asynchronous processes up the chain (like tail -f)
+      for p in processes:
+        if p.poll() is None:
+          p.terminate()
+          p.wait()
       else:
         if p1_proc:
           p2_proc = subprocess.Popen(

@@ -6,7 +6,7 @@ import sys
 import os
 
 # Currently defined built-in commands
-builtin = ["pwd", "type", "echo", "exit", "complete", "jobs", "cd"]
+builtin = ["pwd", "type", "echo", "exit", "complete", "jobs", "cd", "history"]
 # User's registered complete scripts
 complete_map: dict[str, str] = {}
 # Current background jobs
@@ -290,6 +290,8 @@ def run_builtin(command_split: list[str]) -> tuple[str, str]:
           del complete_map[command_split[2]]
         elif command_split[1] == "-C" and len(command_split) > 3:
           complete_map[command_split[3]] = command_split[2]
+    case "history":
+      pass
   return "", ""
 
 def run_command(command_split: list[str], stdin_data: str = "", background: bool = False,) -> tuple[str, str]:

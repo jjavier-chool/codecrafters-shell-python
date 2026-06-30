@@ -382,46 +382,62 @@ def main() -> None:
 
     if "|" in command_split:
       pipe_idx = command_split.index("|")
-      cmd1_tokens = command_split[:pipe_idx]
-      cmd2_tokens = command_split[pipe_idx + 1:]
+      cmd1 = command_split[:pipe_idx]
+      cmd2 = command_split[pipe_idx + 1:]
 
-      exe1, _ = isExecutable(cmd1_tokens[0])
-      exe2, _ = isExecutable(cmd2_tokens[0])
-      out1 = ""
-      p1 = None
-      p2 = None
+      p1_proc = None
+      producer_data = None
 
-      if not exe1 and cmd1_tokens[0] not in builtin:
-        err_text = f"{cmd1_tokens[0]}: command not found\n"
-      elif not exe2 and cmd2_tokens[0] not in builtin:
-        err_text = f"{cmd2_tokens[0]}: command not found\n"
+      # --- Step 1: Execute Producer (cmd1) ---
+      if cmd1[0] in builtin:
+        # Run built-in, capture its output string
+        p1_out, p1_err = run_builtin(cmd1)
+        producer_data = p1_out
       else:
-        p2_target = subprocess.PIPE if (redirect or append) else None
+        # Spawn external, capture the pipe but do NOT wait for it
+        p1_proc = subprocess.Popen(
+          cmd1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
 
-        if cmd1_tokens[0] not in builtin:
-          p1 = subprocess.Popen(
-            cmd1_tokens, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-          )
-        else:
-          out1, err1 = run_builtin(cmd1_tokens)
+      # --- Step 2: Execute Consumer (cmd2) ---
+      # If redirecting, we must capture p2's output. Otherwise, stream direct to terminal.
+      p2_target = subprocess.PIPE if (redirect or append) else None
+
+      if cmd2[0] in builtin:
+        # If cmd1 was external, drain it first so it doesn't hang
+        if p1_proc:
+          producer_data, _ = p1_proc.communicate()
         
-        if cmd2_tokens[0] not in builtin:
-          out_text, err_text = run_builtin(cmd1_tokens)
-        else:
-          p2 = subprocess.Popen(
-            cmd2_tokens, stdin=out1 if out1 else p1.stdout, stdout=p2_target, stderr=subprocess.PIPE, text=True
+        # Run the built-in. (It does not read stdin in your architecture)
+        p2_out, p2_err = run_builtin(cmd2)
+        out_text = p2_out
+        err_text = p2_err
+      else:
+        if p1_proc:
+          # External | External (The `tail -f | head` scenario)
+          p2_proc = subprocess.Popen(
+            cmd2, stdin=p1_proc.stdout, stdout=p2_target, stderr=subprocess.PIPE, text=True
           )
+          # CRITICAL: Close the parent's read end so EOF signals propagate, preventing deadlocks
+          p1_proc.stdout.close()
+          p2_out, p2_err = p2_proc.communicate()
+        else:
+          # Built-in | External (The `echo mango | wc` scenario)
+          p2_proc = subprocess.Popen(
+            cmd2, stdin=subprocess.PIPE, stdout=p2_target, stderr=subprocess.PIPE, text=True
+          )
+          # Feed the built-in's string data into the external command
+          p2_out, p2_err = p2_proc.communicate(input=producer_data)
+        
+        # If streamed to terminal (p2_target=None), p2_out is None. Coerce to empty string.
+        out_text = p2_out if p2_out else ""
+        err_text = p2_err if p2_err else ""
 
-        if p1: 
-          p1.stdout.close()
-
-        if p2:
-          p2_out, err_text = p2.communicate()
-          out_text = p2_out if p2_out is not None else ""
-
-        if p1 and p1.poll() is None:
-          p1.terminate()
-          p1.wait()
+      # --- Step 3: Cleanup ---
+      # Kill hanging producers (like tail -f) after the consumer finishes
+      if p1_proc and p1_proc.poll() is None:
+        p1_proc.terminate()
+        p1_proc.wait()
 
     else:
       if command_split[0] in builtin:

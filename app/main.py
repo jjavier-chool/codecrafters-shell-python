@@ -351,7 +351,7 @@ def declare(command_split: list[str]) -> tuple[str, str]:
           name, value = arg.split("=", 1)
           try:
             int(name[0])
-            return "", f"declare: `{arg}': not a valid identifier"
+            return "", f"declare: `{arg}': not a valid identifier\n"
           except ValueError:
             declare_map[name] = value        
   return "", ""

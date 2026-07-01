@@ -399,7 +399,7 @@ def run_builtin(command_split: list[str]) -> tuple[str, str]:
   if not command_split or not command_split[0]:
     return "", ""
 
-  command_split = expand_variables(command_split)
+  command_split = sub_variables(command_split)
   process = command_split[0]
 
   match process:
@@ -465,7 +465,7 @@ def run_command(command_split: list[str], stdin_data: str = "", background: bool
   if not command_split or not command_split[0]:
     return "", ""
 
-  command_split = expand_variables(command_split)
+  command_split = sub_variables(command_split)
   process = command_split[0]
 
   executable, _ = isExecutable(process)

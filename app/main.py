@@ -330,10 +330,9 @@ def declare(command_split: list[str]) -> tuple[str, str]:
 
   Returns:
     tuple[str, str]: (stdout, stderr) output strings
-
-  Exception:
-    ValueError: expected when given name is VALID
   """
+  out_text = ""
+  err_text = ""
   if len(command_split) > 1:
     # Print variable declare -p NAME
     if command_split[1] == "-p":
@@ -349,12 +348,15 @@ def declare(command_split: list[str]) -> tuple[str, str]:
       for arg in command_split[1:]:
         if "=" in arg:
           name, value = arg.split("=", 1)
-          try:
-            int(name[0])
-            return "", f"declare: `{arg}': not a valid identifier\n"
-          except ValueError:
-            declare_map[name] = value        
-  return "", ""
+          if not name or not (name[0].isalpha() or name[0] == "_") or not all(c.isalnum() or c == "_" for c in name):
+            err_text += f"declare: `{arg}': not a valid identifier\n"
+          else:
+            shell_vars[name] = value
+                
+        else:
+          if not arg or not (arg[0].isalpha() or arg[0] == "_") or not all(c.isalnum() or c == "_" for c in arg):
+            err_text += f"declare: `{arg}': not a valid identifier\n"     
+  return out_text, err_text
 
 def run_builtin(command_split: list[str]) -> tuple[str, str]:
   """Executes a built-in command.

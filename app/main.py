@@ -245,7 +245,7 @@ def jobs(called: bool) -> str:
 
   return out_text
 
-def history_builtin(command_split: list[str]) -> tuple[str, str]:
+def history(command_split: list[str]) -> tuple[str, str]:
   """Handles the history built-in command, including item limiting and file reading.
 
   Args:
@@ -320,6 +320,9 @@ def history_builtin(command_split: list[str]) -> tuple[str, str]:
 
   return "\n".join(out_lines) + "\n", ""
 
+def declare(command_split: list[str]) -> tuple[str, str]:
+  pass
+
 def run_builtin(command_split: list[str]) -> tuple[str, str]:
   """Executes a built-in command.
 
@@ -339,17 +342,6 @@ def run_builtin(command_split: list[str]) -> tuple[str, str]:
   process = command_split[0]
 
   match process:
-    case "exit":
-      histfile = os.environ.get("HISTFILE")
-      if histfile:
-        try:
-          # This also passed the append stage?? Not sure I agree with that.
-          with open(histfile, "w") as f:
-            for cmd in history_list:
-              f.write(cmd + "\n")
-        except Exception:
-          pass
-      exit(0)
     case "echo":
       return " ".join(command_split[1:]) + "\n", ""
     case "pwd":
@@ -357,9 +349,10 @@ def run_builtin(command_split: list[str]) -> tuple[str, str]:
     case "jobs":
       return jobs(True), ""
     case "history":
-      return history_builtin(command_split)
+      return history(command_split)
     case "declare":
-      pass
+      if len(command_split) > 2 and command_split[1] == "-p":
+        return "", f"declare: {command_split[2]}: not found" + "\n"
     case "type":
       out_text, error = shell_type(command_split[1])
       if error:
@@ -374,6 +367,17 @@ def run_builtin(command_split: list[str]) -> tuple[str, str]:
         os.chdir(abspath)
       else:
         return "", f"cd: {abspath}: No such file or directory" + "\n"
+    case "exit":
+      histfile = os.environ.get("HISTFILE")
+      if histfile:
+        try:
+          # This also passed the append stage?? Not sure I agree with that.
+          with open(histfile, "w") as f:
+            for cmd in history_list:
+              f.write(cmd + "\n")
+        except Exception:
+          pass
+      exit(0)
     case "complete":
       if len(command_split) > 2:
         if command_split[1] == "-p":

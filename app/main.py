@@ -367,22 +367,22 @@ def sub_variables(args: list[str]) -> list[str]:
   Returns:
     list[str]: the command arguments with completed substitutions
   """
-  # expanded_args = []
+  # sub_args = []
   # for arg in args:
   #   if arg.startswith("$") and arg[1:] in declare_map:
-  #     expanded_args.append(declare_map[arg[1:]])
+  #     sub_args.append(declare_map[arg[1:]])
 
   #   elif "$" in arg:
   #     dollar_idx = arg.find("$")
   #     var_name = arg[dollar_idx + 1:]
   #     if var_name in declare_map:
-  #       expanded_args.append(arg[:dollar_idx] + declare_map[var_name])
+  #       sub_args.append(arg[:dollar_idx] + declare_map[var_name])
   #     else:
-  #       expanded_args.append(arg)
+  #       sub_args.append(arg)
   #   else:
-  #     expanded_args.append(arg)
-  # return expanded_args
-  expanded_args = []
+  #     sub_args.append(arg)
+  # return sub_args
+  sub_args = []
     
   for arg in args:
     new_arg = ""
@@ -394,7 +394,7 @@ def sub_variables(args: list[str]) -> list[str]:
           end_brace = arg.find('}', i + 2)
           if end_brace != -1:
             var_name = arg[i+2:end_brace]
-            new_arg += shell_vars.get(var_name, "")
+            new_arg += declare_map.get(var_name, "")
             i = end_brace + 1
             continue
                 
@@ -405,16 +405,16 @@ def sub_variables(args: list[str]) -> list[str]:
             j += 1
           var_name = arg[i+1:j]
           if var_name:
-            new_arg += shell_vars.get(var_name, "")
+            new_arg += declare_map.get(var_name, "")
             i = j
             continue
             
       new_arg += arg[i]
       i += 1
         
-    expanded_args.append(new_arg)
+    sub_args.append(new_arg)
         
-  return expanded_args
+  return sub_args
 
 def run_builtin(command_split: list[str]) -> tuple[str, str]:
   """Executes a built-in command.

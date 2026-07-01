@@ -356,10 +356,12 @@ def main() -> None:
   readline.parse_and_bind("tab: complete")
   readline.set_completion_display_matches_hook(display_matches)
   readline.set_completer_delims(" \t\n")
+  # Don't record empty lines or duplicates
+  if hasattr(readline, "set_auto_history"):
+    readline.set_auto_history(False)
 
   while True:
-    sys.stdout.write("$ ")
-    command = input()
+    command = input("$ ")
 
     if not command:
       bg = jobs(False)
@@ -369,6 +371,7 @@ def main() -> None:
       continue
 
     history_list.append(command)
+    readline.add_history(command)
     command_split = shlex.split(command)
 
     redirect = False

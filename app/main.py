@@ -331,6 +331,7 @@ def run_builtin(command_split: list[str]) -> tuple[str, str]:
 
   Exception:
     ValueError: history built-in given an invalid int value
+    pass unable to write to histfile
   """
   if not command_split or not command_split[0]:
     return "", ""
@@ -339,6 +340,15 @@ def run_builtin(command_split: list[str]) -> tuple[str, str]:
 
   match process:
     case "exit":
+      histfile = os.environ.get("HISTFILE")
+      if histfile:
+        try:
+          # Just write until given the append instructions
+          with open(histfile, "w") as f:
+            for cmd in history_list:
+              f.write(cmd + "\n")
+        except Exception:
+          pass
       exit(0)
     case "echo":
       return " ".join(command_split[1:]) + "\n", ""
@@ -414,6 +424,11 @@ def run_command(command_split: list[str], stdin_data: str = "", background: bool
   return result.stdout, result.stderr
 
 def main() -> None:
+  """Primary shell logic that continuously reads in user input
+
+  Exception:
+    pass when given histfile is unable to be read
+  """
   readline.set_completer(completer)
   readline.parse_and_bind("tab: complete")
   readline.set_completion_display_matches_hook(display_matches)
@@ -421,6 +436,19 @@ def main() -> None:
   # Don't record empty lines or duplicates
   if hasattr(readline, "set_auto_history"):
     readline.set_auto_history(False)
+
+  # Startup history loading if given
+  histfile = os.environ.get("HISTFILE")
+  if histfile and os.path.exists(histfile):
+    try:
+      with open(histfile, "r") as f:
+        for line in f:
+          clean_line = line.rstrip("\r\n")
+          if clean_line:
+            history_list.append(clean_line)
+            readline.add_history(clean_line)
+    except Exception:
+      pass
 
   while True:
     command = input("$ ")

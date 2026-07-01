@@ -351,7 +351,7 @@ def declare(command_split: list[str]) -> tuple[str, str]:
           if not name or not (name[0].isalpha() or name[0] == "_") or not all(c.isalnum() or c == "_" for c in name):
             err_text += f"declare: `{arg}': not a valid identifier\n"
           else:
-            shell_vars[name] = value
+            declare_map[name] = value
                 
         else:
           if not arg or not (arg[0].isalpha() or arg[0] == "_") or not all(c.isalnum() or c == "_" for c in arg):

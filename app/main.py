@@ -6,7 +6,7 @@ import sys
 import os
 
 # Currently defined built-in commands
-builtin = ["pwd", "type", "echo", "exit", "complete", "jobs", "cd", "history"]
+builtin = ["pwd", "type", "echo", "exit", "complete", "jobs", "cd", "history", "declare"]
 # User's registered complete scripts
 complete_map: dict[str, str] = {}
 # Current background jobs
@@ -343,7 +343,7 @@ def run_builtin(command_split: list[str]) -> tuple[str, str]:
       histfile = os.environ.get("HISTFILE")
       if histfile:
         try:
-          # Just write until given the append instructions
+          # This also passed the append stage?? Not sure I agree with that.
           with open(histfile, "w") as f:
             for cmd in history_list:
               f.write(cmd + "\n")
@@ -358,6 +358,8 @@ def run_builtin(command_split: list[str]) -> tuple[str, str]:
       return jobs(True), ""
     case "history":
       return history_builtin(command_split)
+    case "declare":
+      pass
     case "type":
       out_text, error = shell_type(command_split[1])
       if error:

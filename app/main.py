@@ -328,8 +328,8 @@ def declare(command_split: list[str]) -> tuple[str, str]:
     if command_split[1] == "-p":
       if len(command_split) > 2:
         var_name = command_split[2]
-        if var_name in shell_vars:
-          return f'declare -- {var_name}="{shell_vars[var_name]}"\n', ""
+        if var_name in declare_map:
+          return f'declare -- {var_name}="{declare_map[var_name]}"\n', ""
         else:
           return "", f"declare: {var_name}: not found\n"
               
@@ -338,7 +338,7 @@ def declare(command_split: list[str]) -> tuple[str, str]:
       for arg in command_split[1:]:
         if "=" in arg:
           name, value = arg.split("=", 1)
-          shell_vars[name] = value        
+          declare_map[name] = value        
   return "", ""
 
 def run_builtin(command_split: list[str]) -> tuple[str, str]:

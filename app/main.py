@@ -367,21 +367,6 @@ def sub_variables(args: list[str]) -> list[str]:
   Returns:
     list[str]: the command arguments with completed substitutions
   """
-  # sub_args = []
-  # for arg in args:
-  #   if arg.startswith("$") and arg[1:] in declare_map:
-  #     sub_args.append(declare_map[arg[1:]])
-
-  #   elif "$" in arg:
-  #     dollar_idx = arg.find("$")
-  #     var_name = arg[dollar_idx + 1:]
-  #     if var_name in declare_map:
-  #       sub_args.append(arg[:dollar_idx] + declare_map[var_name])
-  #     else:
-  #       sub_args.append(arg)
-  #   else:
-  #     sub_args.append(arg)
-  # return sub_args
   sub_args = []
     
   for arg in args:
@@ -411,8 +396,8 @@ def sub_variables(args: list[str]) -> list[str]:
             
       new_arg += arg[i]
       i += 1
-        
-    sub_args.append(new_arg)
+    if new_arg != "":
+      sub_args.append(new_arg)
         
   return sub_args
 

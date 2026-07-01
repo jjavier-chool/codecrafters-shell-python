@@ -252,7 +252,10 @@ def run_builtin(command_split: list[str]) -> tuple[str, str]:
 
   Returns:
     tuple[str, str]: (stdout, stderr) strings
-    """
+
+  Exception:
+    ValueError: history built-in given an invalid int value
+  """
   if not command_split or not command_split[0]:
     return "", ""
 
@@ -293,9 +296,19 @@ def run_builtin(command_split: list[str]) -> tuple[str, str]:
         elif command_split[1] == "-C" and len(command_split) > 3:
           complete_map[command_split[3]] = command_split[2]
     case "history":
+      limit = len(history_list)
+      if len(command_split) > 1:
+        try:
+          limit = int(command_split[1])
+        except ValueError:
+          pass # Fallback to full history if it's not a valid integer
+      if limit <= 0:
+        return "", ""
+
+      start_idx = max(1, len(history_list) - limit + 1)
+      target_history = history_list[-limit:] if limit < len(history_list) else history_list
       out_lines = []
-      for i, cmd in enumerate(history_list, start=1):
-        # >5 right-aligns the number to 5 spaces, followed by 2 spaces
+      for i, cmd in enumerate(target_history, start=start_idx):
         out_lines.append(f"{i:>5}  {cmd}")
       return "\n".join(out_lines) + "\n", ""
   return "", ""

@@ -248,7 +248,7 @@ def jobs(called: bool) -> str:
   return out_text
 
 def history(command_split: list[str]) -> tuple[str, str]:
-  """Handles the history built-in command, including item limiting and file reading.
+  """History built-in, including item limiting and file reading
 
   Args:
     command_split (list[str]): The full command token list (e.g., ['history', '-r', 'file.txt'])
@@ -323,6 +323,17 @@ def history(command_split: list[str]) -> tuple[str, str]:
   return "\n".join(out_lines) + "\n", ""
 
 def declare(command_split: list[str]) -> tuple[str, str]:
+  """Declare built-in
+
+  Args:
+    command_split (list[str]): The full command token list (e.g., ['declare', '-p', 'foo'])
+
+  Returns:
+    tuple[str, str]: (stdout, stderr) output strings
+
+  Exception:
+    ValueError: expected when given name is VALID
+  """
   if len(command_split) > 1:
     # Print variable declare -p NAME
     if command_split[1] == "-p":
@@ -339,7 +350,7 @@ def declare(command_split: list[str]) -> tuple[str, str]:
         if "=" in arg:
           name, value = arg.split("=", 1)
           try:
-            int(val)
+            int(name)
             return "", f"declare: `{arg}': not a valid identifier"
           except ValueError:
             declare_map[name] = value        

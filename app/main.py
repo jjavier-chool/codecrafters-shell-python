@@ -11,6 +11,8 @@ builtin = ["pwd", "type", "echo", "exit", "complete", "jobs", "cd", "history"]
 complete_map: dict[str, str] = {}
 # Current background jobs
 jobs_map: dict[int, (subprocess.Popen, str)] = {}
+# Command history
+history_list: list[str] = []
 
 def get_completions(prefix: str) -> list[str]:
   """Gather all matching executables
@@ -291,7 +293,11 @@ def run_builtin(command_split: list[str]) -> tuple[str, str]:
         elif command_split[1] == "-C" and len(command_split) > 3:
           complete_map[command_split[3]] = command_split[2]
     case "history":
-      pass
+      out_lines = []
+      for i, cmd in enumerate(history_list, start=1):
+        # >5 right-aligns the number to 5 spaces, followed by 2 spaces
+        out_lines.append(f"{i:>5}  {cmd}")
+      return "\n".join(out_lines) + "\n", ""
   return "", ""
 
 def run_command(command_split: list[str], stdin_data: str = "", background: bool = False,) -> tuple[str, str]:
@@ -349,6 +355,7 @@ def main() -> None:
         sys.stdout.flush()
       continue
 
+    history_list.append(command)
     command_split = shlex.split(command)
 
     redirect = False
@@ -383,7 +390,7 @@ def main() -> None:
     err_text = ""
 
     if "|" in command_split:
-      # 1. Parse command_split into N separate segments
+      # Parse command_split into N separate segments
       segments = []
       current_segment = []
       for token in command_split:
@@ -394,14 +401,14 @@ def main() -> None:
           current_segment.append(token)
       segments.append(current_segment)
 
-      # 2. Track background processes to clean them up and avoid deadlocks
+      # Track background processes to clean them up and avoid deadlocks
       processes = []
       prev_stdout = None
       in_memory_data = None
       out_text = ""
       err_text = ""
 
-      # 3. Iterate through each segment in the pipeline chain
+      # Iterate through each segment in the pipeline chain
       for i, segment in enumerate(segments):
         is_last = (i == len(segments) - 1)
         cmd_name = segment[0]
@@ -411,7 +418,6 @@ def main() -> None:
         stdout_dest = p2_target if is_last else subprocess.PIPE
 
         if cmd_name in builtin:
-          # --- CASE A: Built-in Command ---
           # If the previous command was an external process, we must drain it to memory first
           if prev_stdout and not in_memory_data:
             for p in reversed(processes):
@@ -432,7 +438,6 @@ def main() -> None:
             out_text = in_memory_data
 
         else:
-          # --- CASE B: External Command ---
           if in_memory_data is not None:
             # The previous command was a built-in or drained process; feed it via stdin=PIPE
             p = subprocess.Popen(
@@ -466,8 +471,7 @@ def main() -> None:
               out_text = p_out if p_out else ""
               err_text += p_err if p_err else ""
 
-      # 4. Process Cleanup & Subshell Waiting 
-      # Terminate any lingering asynchronous processes up the chain (like tail -f)
+      # Terminate any lingering asynchronous processes up the chain
       for p in processes:
         if p.poll() is None:
           p.terminate()

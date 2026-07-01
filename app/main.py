@@ -338,7 +338,11 @@ def declare(command_split: list[str]) -> tuple[str, str]:
       for arg in command_split[1:]:
         if "=" in arg:
           name, value = arg.split("=", 1)
-          declare_map[name] = value        
+          try:
+            int(val)
+            return "", f"declare: `{arg}': not a valid identifier"
+          except ValueError:
+            declare_map[name] = value        
   return "", ""
 
 def run_builtin(command_split: list[str]) -> tuple[str, str]:

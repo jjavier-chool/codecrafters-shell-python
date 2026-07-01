@@ -350,7 +350,7 @@ def declare(command_split: list[str]) -> tuple[str, str]:
         if "=" in arg:
           name, value = arg.split("=", 1)
           try:
-            int(name)
+            int(name[0])
             return "", f"declare: `{arg}': not a valid identifier"
           except ValueError:
             declare_map[name] = value        

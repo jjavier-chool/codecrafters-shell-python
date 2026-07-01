@@ -14,6 +14,8 @@ jobs_map: dict[int, (subprocess.Popen, str)] = {}
 # Command history
 history_list: list[str] = []
 last_appended_index: int = 0
+# Declared shell variables
+declare_map: dict[str, str] = {}
 
 def get_completions(prefix: str) -> list[str]:
   """Gather all matching executables
@@ -259,7 +261,7 @@ def history(command_split: list[str]) -> tuple[str, str]:
   """
   global history_list, last_appended_index
     
-  # Append history to file -> history -a <path>
+  # Append history to file history -a <path>
   if len(command_split) > 2 and command_split[1] == "-a":
     filepath = command_split[2]
     try:
@@ -274,7 +276,7 @@ def history(command_split: list[str]) -> tuple[str, str]:
     except Exception as e:
       return "", f"history: cannot append {filepath}: {str(e)}\n"
   
-  # Write history to file -> history -w <path>
+  # Write history to file history -w <path>
   if len(command_split) > 2 and command_split[1] == "-w":
         filepath = command_split[2]
         try:
@@ -285,7 +287,7 @@ def history(command_split: list[str]) -> tuple[str, str]:
         except Exception as e:
             return "", f"history: cannot write {filepath}: {str(e)}\n"
     
-  # Read history from file -> history -r <path>
+  # Read history from file history -r <path>
   if len(command_split) > 2 and command_split[1] == "-r":
     filepath = command_split[2]
     try:
@@ -321,7 +323,23 @@ def history(command_split: list[str]) -> tuple[str, str]:
   return "\n".join(out_lines) + "\n", ""
 
 def declare(command_split: list[str]) -> tuple[str, str]:
-  pass
+  if len(command_split) > 1:
+    # Print variable declare -p NAME
+    if command_split[1] == "-p":
+      if len(command_split) > 2:
+        var_name = command_split[2]
+        if var_name in shell_vars:
+          return f'declare -- {var_name}="{shell_vars[var_name]}"\n', ""
+        else:
+          return "", f"declare: {var_name}: not found\n"
+              
+    # Assign variable declare NAME=VALUE
+    else:
+      for arg in command_split[1:]:
+        if "=" in arg:
+          name, value = arg.split("=", 1)
+          shell_vars[name] = value        
+  return "", ""
 
 def run_builtin(command_split: list[str]) -> tuple[str, str]:
   """Executes a built-in command.
@@ -351,8 +369,7 @@ def run_builtin(command_split: list[str]) -> tuple[str, str]:
     case "history":
       return history(command_split)
     case "declare":
-      if len(command_split) > 2 and command_split[1] == "-p":
-        return "", f"declare: {command_split[2]}: not found" + "\n"
+      return declare(command_split)
     case "type":
       out_text, error = shell_type(command_split[1])
       if error:

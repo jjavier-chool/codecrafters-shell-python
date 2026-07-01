@@ -252,8 +252,22 @@ def history_builtin(command_split: list[str]) -> tuple[str, str]:
 
   Returns:
     tuple[str, str]: (stdout, stderr) output strings
+
+  Exception:
+    -w/-a command, unable to write to given file
   """
   global history_list
+
+  if len(command_split) > 2 and (command_split[1] == "-w" or command_split[1] == "-a"):
+        filepath = command_split[2]
+        try:
+            mode = "a" if command_split[1] == "-a" else "w"
+            with open(filepath, mode) as f:
+                for cmd in history_list:
+                    f.write(cmd + "\n")
+            return "", ""
+        except Exception as e:
+            return "", f"history: cannot write {filepath}: {str(e)}\n"
     
   # Read history from file -> history -r <path>
   if len(command_split) > 2 and command_split[1] == "-r":

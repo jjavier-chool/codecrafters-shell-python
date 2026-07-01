@@ -1,6 +1,6 @@
 # main.py
 import subprocess
-import readline
+import readline # This library is great, seriously.
 import shlex
 import sys
 import os
@@ -244,6 +244,52 @@ def jobs(called: bool) -> str:
 
   return out_text
 
+def history_builtin(command_split: list[str]) -> tuple[str, str]:
+  """Handles the history built-in command, including item limiting and file reading.
+
+  Args:
+    command_split (list[str]): The full command token list (e.g., ['history', '-r', 'file.txt'])
+
+  Returns:
+    tuple[str, str]: (stdout, stderr) output strings
+  """
+  global history_list
+    
+  # Read history from file -> history -r <path>
+  if len(command_split) > 2 and command_split[1] == "-r":
+    filepath = command_split[2]
+    try:
+      with open(filepath, "r") as f:
+        for line in f:
+          clean_line = line.rstrip("\r\n")
+          # Only append non-empty lines to history
+          if clean_line:
+            history_list.append(clean_line)
+            readline.add_history(clean_line)
+      return "", ""
+    except Exception as e:
+      return "", f"history: cannot read {filepath}: {str(e)}\n"
+
+  # Standard history display w/ optional n entry limit
+  limit = len(history_list)
+  if len(command_split) > 1:
+    try:
+      limit = int(command_split[1])
+    except ValueError:
+      pass # Fallback to printing all history
+            
+  if limit <= 0:
+    return "", ""
+
+  start_idx = max(1, len(history_list) - limit + 1)
+  target_history = history_list[-limit:] if limit < len(history_list) else history_list
+
+  out_lines = []
+  for i, cmd in enumerate(target_history, start=start_idx):
+    out_lines.append(f"{i:>5}  {cmd}")
+
+  return "\n".join(out_lines) + "\n", ""
+
 def run_builtin(command_split: list[str]) -> tuple[str, str]:
   """Executes a built-in command.
 
@@ -266,16 +312,18 @@ def run_builtin(command_split: list[str]) -> tuple[str, str]:
       exit(0)
     case "echo":
       return " ".join(command_split[1:]) + "\n", ""
+    case "pwd":
+      return os.getcwd() + "\n", ""
+    case "jobs":
+      return jobs(True), ""
+    case "history":
+      return history_builtin(command_split)
     case "type":
       out_text, error = shell_type(command_split[1])
       if error:
         return "", out_text
       else:
         return out_text, ""
-    case "pwd":
-      return os.getcwd() + "\n", ""
-    case "jobs":
-      return jobs(True), ""
     case "cd":
       abspath = command_split[1]
       if abspath == "~":
@@ -295,22 +343,6 @@ def run_builtin(command_split: list[str]) -> tuple[str, str]:
           del complete_map[command_split[2]]
         elif command_split[1] == "-C" and len(command_split) > 3:
           complete_map[command_split[3]] = command_split[2]
-    case "history":
-      limit = len(history_list)
-      if len(command_split) > 1:
-        try:
-          limit = int(command_split[1])
-        except ValueError:
-          pass # Fallback to full history if it's not a valid integer
-      if limit <= 0:
-        return "", ""
-
-      start_idx = max(1, len(history_list) - limit + 1)
-      target_history = history_list[-limit:] if limit < len(history_list) else history_list
-      out_lines = []
-      for i, cmd in enumerate(target_history, start=start_idx):
-        out_lines.append(f"{i:>5}  {cmd}")
-      return "\n".join(out_lines) + "\n", ""
   return "", ""
 
 def run_command(command_split: list[str], stdin_data: str = "", background: bool = False,) -> tuple[str, str]:

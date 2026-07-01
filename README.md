@@ -8,6 +8,10 @@ interpreting shell commands, running external programs and builtin commands like
 cd, pwd, echo and more. Along the way, you'll learn about shell command parsing,
 REPLs, builtin commands, and more.
 
+# TODO:
+- Refractor; files for built-ins and autocomplete
+- Reinventing the wheel isn't necessary, but looking into my own attempts at what shlex and readline can accomplish
+
 # Notes: documentation for utilized libraries
 
 - [sys](https://docs.python.org/3/library/sys.html)

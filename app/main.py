@@ -13,6 +13,7 @@ complete_map: dict[str, str] = {}
 jobs_map: dict[int, (subprocess.Popen, str)] = {}
 # Command history
 history_list: list[str] = []
+last_appended_index: int = 0
 
 def get_completions(prefix: str) -> list[str]:
   """Gather all matching executables
@@ -254,15 +255,30 @@ def history_builtin(command_split: list[str]) -> tuple[str, str]:
     tuple[str, str]: (stdout, stderr) output strings
 
   Exception:
-    -w/-a command, unable to write to given file
+    -w/-a command, unable to write/append to given file
   """
-  global history_list
-
-  if len(command_split) > 2 and (command_split[1] == "-w" or command_split[1] == "-a"):
+  global history_list, last_appended_index
+    
+  # Append history to file -> history -a <path>
+  if len(command_split) > 2 and command_split[1] == "-a":
+    filepath = command_split[2]
+    try:
+      with open(filepath, "a") as f:
+        # Slice the list to only grab commands we haven't saved yet
+        for cmd in history_list[last_appended_index:]:
+          f.write(cmd + "\n")
+            
+      # Update the pointer so we don't append these again
+      last_appended_index = len(history_list)
+      return "", ""
+    except Exception as e:
+      return "", f"history: cannot append {filepath}: {str(e)}\n"
+  
+  # Write history to file -> history -w <path>
+  if len(command_split) > 2 and command_split[1] == "-w":
         filepath = command_split[2]
         try:
-            mode = "a" if command_split[1] == "-a" else "w"
-            with open(filepath, mode) as f:
+            with open(filepath, "w") as f:
                 for cmd in history_list:
                     f.write(cmd + "\n")
             return "", ""

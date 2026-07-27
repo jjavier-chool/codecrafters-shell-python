@@ -9,7 +9,7 @@ cd, pwd, echo and more. Along the way, you'll learn about shell command parsing,
 REPLs, builtin commands, and more.
 
 # TODO:
-- Refractor; files for built-ins and autocomplete
+- Refractor; files for built-ins and autocomplete. Get an agent to do this for me?
 - Reinventing the wheel isn't necessary, but looking into my own attempts at what shlex and readline can accomplish
 
 # Notes: documentation for utilized libraries
